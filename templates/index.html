@@ -1,0 +1,595 @@
+{% extends "base.html" %}
+
+{% block title %}新增批號 - 試劑批號確認系統{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- 歡迎標題 -->
+        <div class="text-center mb-5">
+            <div class="position-relative d-inline-block mb-4">
+                <h1 class="display-3 fw-bold text-white mb-3 text-gradient">
+                    <i class="bi bi-flask me-3 floating"></i>
+                    試劑批號管理
+                </h1>
+                <div class="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-10 rounded-pill blur-sm" style="filter: blur(20px); z-index: -1;"></div>
+            </div>
+            <p class="lead text-white-50 fs-4 mb-4">
+                快速新增和管理試劑批號，確保檢驗品質與安全
+            </p>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <div class="badge bg-primary bg-opacity-20 text-white px-3 py-2 fs-6">
+                    <i class="bi bi-shield-check me-1"></i>品質保證
+                </div>
+                <div class="badge bg-success bg-opacity-20 text-white px-3 py-2 fs-6">
+                    <i class="bi bi-clock me-1"></i>即時更新
+                </div>
+                <div class="badge bg-info bg-opacity-20 text-white px-3 py-2 fs-6">
+                    <i class="bi bi-graph-up me-1"></i>數據追蹤
+                </div>
+            </div>
+        </div>
+
+        <div class="card glow">
+            <div class="card-header position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                        <i class="bi bi-plus-circle display-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 text-white">
+                            新增試劑批號
+                        </h3>
+                        <p class="mb-0 opacity-90">請填寫試劑資訊以新增到系統中</p>
+                    </div>
+                </div>
+                <div class="position-absolute top-0 end-0 p-3">
+                    <div class="bg-white bg-opacity-20 rounded-circle p-2">
+                        <i class="bi bi-lightbulb text-white"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-5">
+                <form id="reagentForm">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="form-group position-relative">
+                                <label for="item" class="form-label">
+                                    <i class="bi bi-flask text-primary"></i>
+                                    檢驗項目名稱 <span class="text-danger">*</span>
+                                </label>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control form-control-lg" id="item" name="item" 
+                                           placeholder="例如：葡萄糖、膽固醇、尿酸..." required>
+                                    <div class="position-absolute top-50 end-0 translate-middle-y me-3">
+                                        <i class="bi bi-search text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    請輸入試劑所屬的檢驗項目名稱
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group position-relative">
+                                <label for="lot_number" class="form-label">
+                                    <i class="bi bi-upc-scan text-primary"></i>
+                                    批號 <span class="text-danger">*</span>
+                                </label>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control form-control-lg" id="lot_number" name="lot_number" 
+                                           placeholder="例如：GLU-2024-001、CHO-2024-001..." required>
+                                    <div class="position-absolute top-50 end-0 translate-middle-y me-3">
+                                        <i class="bi bi-upc text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-shield-check me-1"></i>
+                                    請輸入試劑的批號（不可重複）
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-4 mt-2">
+                        <div class="col-md-6">
+                            <div class="form-group position-relative">
+                                <label for="expiration_date" class="form-label">
+                                    <i class="bi bi-calendar-event text-primary"></i>
+                                    有效期限 <span class="text-danger">*</span>
+                                </label>
+                                <div class="position-relative">
+                                    <input type="date" class="form-control form-control-lg" id="expiration_date" name="expiration_date" required>
+                                    <div class="position-absolute top-50 end-0 translate-middle-y me-3">
+                                        <i class="bi bi-calendar text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-clock me-1"></i>
+                                    請選擇試劑的有效期限
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group position-relative">
+                                <label for="quantity" class="form-label">
+                                    <i class="bi bi-boxes text-primary"></i>
+                                    數量
+                                </label>
+                                <div class="position-relative">
+                                    <input type="number" class="form-control form-control-lg" id="quantity" name="quantity" 
+                                           value="1" min="1" step="1">
+                                    <div class="position-absolute top-50 end-0 translate-middle-y me-3">
+                                        <i class="bi bi-hash text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-hash me-1"></i>
+                                    請輸入試劑的數量（預設為1）
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mt-4">
+                        <label for="note" class="form-label">
+                            <i class="bi bi-chat-text text-primary"></i>
+                            備註
+                        </label>
+                        <div class="position-relative">
+                            <textarea class="form-control form-control-lg" id="note" name="note" rows="3" 
+                                      placeholder="可選填：例如使用注意事項、特殊說明等..."></textarea>
+                            <div class="position-absolute top-0 end-0 p-3">
+                                <i class="bi bi-pencil text-muted"></i>
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <i class="bi bi-lightbulb me-1"></i>
+                            可選填的額外說明資訊
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-3 flex-wrap mt-5 justify-content-center">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                            <i class="bi bi-check-circle me-2"></i>
+                            儲存批號
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary btn-lg" id="resetBtn">
+                            <i class="bi bi-arrow-clockwise me-2"></i>
+                            重新填寫
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-lg" id="clearBtn">
+                            <i class="bi bi-trash me-2"></i>
+                            清空表單
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 最近新增的批號 -->
+        <div class="card mt-5">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-20 rounded-circle p-3 me-3">
+                        <i class="bi bi-clock-history display-6 text-primary"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1 text-white">最近新增的批號</h5>
+                        <p class="mb-0 opacity-75">查看最新登記的試劑批號</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="recentTable">
+                        <thead>
+                            <tr>
+                                <th><i class="bi bi-flask me-1"></i>檢驗項目</th>
+                                <th><i class="bi bi-upc-scan me-1"></i>批號</th>
+                                <th><i class="bi bi-calendar-event me-1"></i>有效期限</th>
+                                <th><i class="bi bi-boxes me-1"></i>數量</th>
+                                <th><i class="bi bi-clock me-1"></i>儲存時間</th>
+                                <th><i class="bi bi-flag me-1"></i>狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <div class="loading-spinner mx-auto mb-3"></div>
+                                    <p class="mb-0">正在載入資料...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 功能特色 -->
+        <div class="row mt-5">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center border-0 glass-effect">
+                    <div class="card-body p-4">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-shield-check display-4 text-primary"></i>
+                        </div>
+                        <h5 class="card-title text-primary mb-3">品質保證</h5>
+                        <p class="card-text text-muted">嚴格的批號管理，確保試劑品質與安全性</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center border-0 glass-effect">
+                    <div class="card-body p-4">
+                        <div class="bg-success bg-opacity-10 rounded-circle p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-lightning display-4 text-success"></i>
+                        </div>
+                        <h5 class="card-title text-success mb-3">快速操作</h5>
+                        <p class="card-text text-muted">簡潔的介面設計，提升工作效率</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center border-0 glass-effect">
+                    <div class="card-body p-4">
+                        <div class="bg-info bg-opacity-10 rounded-circle p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-graph-up display-4 text-info"></i>
+                        </div>
+                        <h5 class="card-title text-info mb-3">數據追蹤</h5>
+                        <p class="card-text text-muted">完整的記錄追蹤，方便管理與查詢</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 確保函數在頁面載入前就定義好
+function isExpired(dateString) {
+    if (!dateString) return false;
+    const expDate = new Date(dateString);
+    const today = new Date();
+    return expDate < today;
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('zh-TW');
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-TW');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('頁面載入完成，開始初始化...');
+    
+    // 設定預設日期（一年後）
+    const today = new Date();
+    const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+    document.getElementById('expiration_date').value = nextYear.toISOString().split('T')[0];
+    
+    // 延遲載入最近新增的批號（確保頁面完全載入）
+    setTimeout(() => {
+        console.log('延遲載入開始...');
+        loadRecentReagents();
+    }, 500);
+    
+    // 表單提交處理
+    document.getElementById('reagentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitForm();
+    });
+    
+    // 清空表單按鈕
+    document.getElementById('clearBtn').addEventListener('click', function() {
+        if (confirm('確定要清空所有欄位嗎？')) {
+            document.getElementById('reagentForm').reset();
+            // 重新設定預設日期
+            const today = new Date();
+            const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+            document.getElementById('expiration_date').value = nextYear.toISOString().split('T')[0];
+        }
+    });
+    
+    // 輸入框焦點效果
+    const inputs = document.querySelectorAll('.form-control');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('focused');
+            this.parentElement.parentElement.classList.add('glow');
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('focused');
+            this.parentElement.parentElement.classList.remove('glow');
+        });
+    });
+    
+    // 添加輸入驗證提示
+    const itemInput = document.getElementById('item');
+    const lotInput = document.getElementById('lot_number');
+    
+    itemInput.addEventListener('input', function() {
+        if (this.value.length > 0) {
+            this.style.borderColor = '#059669';
+            this.style.boxShadow = '0 0 0 4px rgba(5, 150, 105, 0.1)';
+        } else {
+            this.style.borderColor = '';
+            this.style.boxShadow = '';
+        }
+    });
+    
+    lotInput.addEventListener('input', function() {
+        if (this.value.length > 0) {
+            this.style.borderColor = '#7c3aed';
+            this.style.boxShadow = '0 0 0 4px rgba(124, 58, 237, 0.1)';
+        } else {
+            this.style.borderColor = '';
+            this.style.boxShadow = '';
+        }
+    });
+    
+    // 添加手動重新載入按鈕的事件監聽器
+    const reloadBtn = document.createElement('button');
+    reloadBtn.className = 'btn btn-outline-primary btn-sm ms-2';
+    reloadBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>重新載入';
+    reloadBtn.onclick = function() {
+        console.log('手動重新載入資料...');
+        loadRecentReagents();
+    };
+    
+    // 找到表格標題並添加重新載入按鈕
+    const tableHeader = document.querySelector('.card-header .d-flex');
+    if (tableHeader) {
+        tableHeader.appendChild(reloadBtn);
+    }
+});
+
+function submitForm() {
+    const form = document.getElementById('reagentForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    // 獲取表單資料
+    const formData = {
+        item: document.getElementById('item').value.trim(),
+        lot_number: document.getElementById('lot_number').value.trim(),
+        expiration_date: document.getElementById('expiration_date').value,
+        quantity: document.getElementById('quantity').value || 1,
+        note: document.getElementById('note').value.trim()
+    };
+    
+    // 驗證資料
+    if (!formData.item) {
+        showAlert(`
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-4"></i>
+                <div>
+                    <strong>請輸入檢驗項目名稱</strong><br>
+                    <small>此欄位為必填項目</small>
+                </div>
+            </div>
+        `, 'warning');
+        document.getElementById('item').focus();
+        return;
+    }
+    
+    if (!formData.lot_number) {
+        showAlert(`
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-4"></i>
+                <div>
+                    <strong>請輸入批號</strong><br>
+                    <small>此欄位為必填項目</small>
+                </div>
+            </div>
+        `, 'warning');
+        document.getElementById('lot_number').focus();
+        return;
+    }
+    
+    if (!formData.expiration_date) {
+        showAlert(`
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-4"></i>
+                <div>
+                    <strong>請選擇有效期限</strong><br>
+                    <small>此欄位為必填項目</small>
+                </div>
+            </div>
+        `, 'warning');
+        document.getElementById('expiration_date').focus();
+        return;
+    }
+    
+    // 顯示載入狀態
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<div class="loading-spinner me-2"></div>儲存中...';
+    
+    // 發送 API 請求
+    fetch('/api/save_reagent', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill text-success me-2 fs-4"></i>
+                    <div>
+                        <strong>儲存成功！</strong><br>
+                        <small>${data.message}</small>
+                    </div>
+                </div>
+            `, 'success');
+            form.reset();
+            // 重新設定預設日期
+            const today = new Date();
+            const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+            document.getElementById('expiration_date').value = nextYear.toISOString().split('T')[0];
+            // 重新載入最近新增的批號
+            loadRecentReagents();
+        } else {
+            if (data.details) {
+                // 批號已存在，顯示詳細資訊
+                showAlert(`
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill text-info me-2 fs-4"></i>
+                        <div>
+                            <strong>批號已存在</strong><br>
+                            <small>項目：${data.details.item}<br>儲存時間：${formatDateTime(data.details.stored_date)}</small>
+                        </div>
+                    </div>
+                `, 'info');
+            } else {
+                showAlert(`
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-4"></i>
+                        <div>
+                            <strong>儲存失敗</strong><br>
+                            <small>${data.message}</small>
+                        </div>
+                    </div>
+                `, 'danger');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert(`
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-4"></i>
+                <div>
+                    <strong>系統錯誤</strong><br>
+                    <small>儲存失敗，請稍後再試</small>
+                </div>
+            </div>
+        `, 'danger');
+    })
+    .finally(() => {
+        // 恢復按鈕狀態
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
+
+function loadRecentReagents() {
+    console.log('開始載入最近新增的批號...');
+    
+    fetch('/api/get_all_reagents')
+        .then(response => {
+            console.log('API 回應狀態:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('API 回應資料:', data);
+            
+            if (data.success && data.data.length > 0) {
+                console.log(`成功載入 ${data.data.length} 筆記錄`);
+                displayRecentReagents(data.data.slice(0, 5)); // 只顯示最近5筆
+            } else {
+                console.log('API 回應失敗或無資料:', data.message);
+                displayRecentReagents([]);
+            }
+        })
+        .catch(error => {
+            console.error('載入最近批號時發生錯誤:', error);
+            displayRecentReagents([]);
+        });
+}
+
+function displayRecentReagents(reagents) {
+    console.log('開始顯示試劑記錄:', reagents);
+    const tbody = document.querySelector('#recentTable tbody');
+    
+    if (!tbody) {
+        console.error('找不到表格主體元素');
+        return;
+    }
+    
+    if (reagents.length === 0) {
+        console.log('沒有記錄，顯示空狀態');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted py-5">
+                    <div class="bg-light bg-opacity-50 rounded-circle p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-inbox display-4 text-muted"></i>
+                    </div>
+                    <p class="mb-0 fs-5">尚無資料</p>
+                    <small class="text-muted">新增第一個批號後，這裡會顯示相關資訊</small>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    console.log(`準備顯示 ${reagents.length} 筆記錄`);
+    
+    tbody.innerHTML = reagents.map((reagent, index) => {
+        console.log(`處理記錄 ${index + 1}:`, reagent);
+        
+        const expired = isExpired(reagent.expiration_date);
+        const statusClass = expired ? 'status-expired' : 'status-used';
+        const statusText = expired ? '已過期' : '使用中';
+        const statusIcon = expired ? 'bi-exclamation-triangle' : 'bi-check-circle';
+        
+        return `
+            <tr class="${expired ? 'expired' : ''}">
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="bi bi-flask text-primary"></i>
+                        </div>
+                        <strong>${reagent.item}</strong>
+                    </div>
+                </td>
+                <td>
+                    <code class="fs-6 bg-light px-3 py-2 rounded-pill">${reagent.lot_number}</code>
+                </td>
+                <td>
+                    <span class="${expired ? 'text-danger fw-bold' : ''}">
+                        <i class="bi bi-calendar me-1"></i>
+                        ${formatDate(reagent.expiration_date)}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge bg-secondary bg-opacity-75 fs-6 px-3 py-2">
+                        <i class="bi bi-boxes me-1"></i>
+                        ${reagent.quantity || 1}
+                    </span>
+                </td>
+                <td>
+                    <small class="text-muted">
+                        <i class="bi bi-clock me-1"></i>
+                        ${formatDateTime(reagent.stored_date)}
+                    </small>
+                </td>
+                <td>
+                    <span class="status-badge ${statusClass}">
+                        <i class="bi ${statusIcon}"></i>
+                        ${statusText}
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    console.log('記錄顯示完成');
+}
+</script>
+{% endblock %}

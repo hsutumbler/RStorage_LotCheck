@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}批號查詢 - 試劑批號確認系統{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- 頁面標題 -->
+        <div class="text-center mb-5">
+            <div class="position-relative d-inline-block mb-4">
+                <h1 class="display-3 fw-bold text-white mb-3 text-gradient">
+                    <i class="bi bi-search me-3 floating"></i>
+                    批號查詢
+                </h1>
+                <div class="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-10 rounded-pill blur-sm" style="filter: blur(20px); z-index: -1;"></div>
+            </div>
+            <p class="lead text-white-50 fs-4 mb-4">
+                快速查詢試劑批號使用狀態，確保檢驗品質與安全
+            </p>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <div class="badge bg-primary bg-opacity-20 text-white px-3 py-2 fs-6">
+                    <i class="bi bi-search me-1"></i>快速查詢
+                </div>
+                <div class="badge bg-success bg-opacity-20 text-white px-3 py-2 fs-6">
+                    <i class="bi bi-shield-check me-1"></i>即時驗證
+                </div>
+                <div class="badge bg-info bg-opacity-20 text-white px-3 py-2 fs-6">
+                    <i class="bi bi-clock me-1"></i>狀態追蹤
+                </div>
+            </div>
+        </div>
+
+        <!-- 查詢表單 -->
+        <div class="card glow">
+            <div class="card-header position-relative">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                        <i class="bi bi-search display-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 text-white">批號查詢</h3>
+                        <p class="mb-0 opacity-90">輸入批號以確認是否已使用過</p>
+                    </div>
+                </div>
+                <div class="position-absolute top-0 end-0 p-3">
+                    <div class="bg-white bg-opacity-20 rounded-circle p-2">
+                        <i class="bi bi-lightbulb text-white"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-5">
+                <div class="row align-items-end">
+                    <div class="col-md-8">
+                        <label for="search_lot_number" class="form-label">
+                            <i class="bi bi-upc-scan text-primary"></i>
+                            批號 <span class="text-danger">*</span>
+                        </label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control form-control-lg" 
+                                   id="search_lot_number" name="search_lot_number" 
+                                   placeholder="請輸入要查詢的批號..." required>
+                            <div class="position-absolute top-50 end-0 translate-middle-y me-3">
+                                <i class="bi bi-upc text-muted"></i>
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            例如：AFP001、CEA001...
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-primary btn-lg w-100" id="searchBtn">
+                            <i class="bi bi-search me-2"></i>
+                            查詢批號
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 查詢結果 -->
+        <div class="card mt-4" id="resultCard" style="display: none;">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    <div class="bg-info bg-opacity-20 rounded-circle p-3 me-3">
+                        <i class="bi bi-info-circle display-6 text-info"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1 text-white">查詢結果</h5>
+                        <p class="mb-0 opacity-75">批號使用狀態詳細資訊</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div id="resultContent">
+                    <!-- 結果內容將在這裡動態顯示 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 工具函數 - 必須在最前面定義
+function isExpired(dateString) {
+    if (!dateString) return false;
+    const expDate = new Date(dateString);
+    const today = new Date();
+    return expDate < today;
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('zh-TW');
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-TW');
+}
+
+// 主要功能函數
+function performSearch() {
+    const searchInput = document.getElementById('search_lot_number');
+    const searchBtn = document.getElementById('searchBtn');
+    const lotNumber = searchInput.value.trim();
+    
+    if (!lotNumber) {
+        showAlert(`
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-4"></i>
+                <div>
+                    <strong>請輸入批號</strong><br>
+                    <small>請輸入要查詢的批號</small>
+                </div>
+            </div>
+        `, 'warning');
+        searchInput.focus();
+        return;
+    }
+    
+    // 顯示載入狀態
+    searchBtn.disabled = true;
+    searchBtn.innerHTML = '<div class="loading-spinner me-2"></div>查詢中...';
+    
+    // 發送查詢請求
+    fetch('/api/search_reagent', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lot_number: lotNumber })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displaySearchResult(data);
+        } else {
+            showAlert(`
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-4"></i>
+                    <div>
+                        <strong>查詢失敗</strong><br>
+                        <small>${data.message}</small>
+                    </div>
+                </div>
+            `, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert(`
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-4"></i>
+                <div>
+                    <strong>系統錯誤</strong><br>
+                    <small>查詢失敗，請稍後再試</small>
+                </div>
+            </div>
+        `, 'danger');
+    })
+    .finally(() => {
+        // 恢復按鈕狀態
+        searchBtn.disabled = false;
+        searchBtn.innerHTML = '<i class="bi bi-search me-2"></i>查詢批號';
+    });
+}
+
+function displaySearchResult(data) {
+    const resultCard = document.getElementById('resultCard');
+    const resultContent = document.getElementById('resultContent');
+    
+    if (data.found) {
+        // 找到批號
+        const reagent = data.data;
+        const expired = isExpired(reagent.expiration_date);
+        
+        resultContent.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="bg-light rounded-3 p-3 border-start border-4 border-primary">
+                        <label class="form-label fw-bold text-muted">檢驗項目</label>
+                        <p class="mb-0 fs-5">${reagent.item}</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light rounded-3 p-3 border-start border-4 border-info">
+                        <label class="form-label fw-bold text-muted">批號</label>
+                        <p class="mb-0 fs-5"><code class="bg-white px-3 py-2 rounded-pill">${reagent.lot_number}</code></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="bg-light rounded-3 p-3 border-start border-4 ${expired ? 'border-danger' : 'border-success'}">
+                        <label class="form-label fw-bold text-muted">有效期限</label>
+                        <p class="mb-0 fs-5 ${expired ? 'text-danger fw-bold' : ''}">
+                            ${formatDate(reagent.expiration_date)}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light rounded-3 p-3 border-start border-4 border-secondary">
+                        <label class="form-label fw-bold text-muted">儲存時間</label>
+                        <p class="mb-0 fs-5">${formatDateTime(reagent.stored_date)}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="bg-light rounded-3 p-3 border-start border-4 border-info">
+                        <label class="form-label fw-bold text-muted">狀態</label>
+                        <p class="mb-0">
+                            <span class="status-badge ${expired ? 'status-expired' : 'status-used'}">
+                                <i class="bi ${expired ? 'bi-exclamation-triangle' : 'bi-check-circle'} me-1"></i>
+                                ${expired ? '已過期' : '使用中'}
+                            </span>
+                        </p>
+                        ${expired ? '<div class="alert alert-danger mt-3"><i class="bi bi-exclamation-triangle me-2"></i>此批號已超過有效期限，請注意使用</div>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultCard.style.display = 'block';
+    } else {
+        // 未找到批號
+        resultContent.innerHTML = `
+            <div class="text-center py-4">
+                <div class="bg-light bg-opacity-50 rounded-circle p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+                    <i class="bi bi-search display-4 text-muted"></i>
+                </div>
+                <h5 class="text-muted mb-2">批號尚未使用</h5>
+                <p class="text-muted mb-0">
+                    批號 <code class="bg-white px-3 py-2 rounded-pill">${data.lot_number || '未知'}</code> 尚未在系統中登記
+                </p>
+                <small class="text-muted d-block mt-2">您可以前往首頁新增此批號</small>
+            </div>
+        `;
+        
+        resultCard.style.display = 'block';
+    }
+}
+
+// 頁面載入完成後執行
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('批號查詢頁面載入完成，開始初始化...');
+    
+    // 綁定搜尋按鈕事件
+    document.getElementById('searchBtn').addEventListener('click', performSearch);
+    
+    // 綁定 Enter 鍵事件
+    document.getElementById('search_lot_number').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    // 輸入框焦點效果
+    document.getElementById('search_lot_number').addEventListener('focus', function() {
+        this.parentElement.classList.add('focused');
+        this.parentElement.parentElement.classList.add('glow');
+    });
+    
+    document.getElementById('search_lot_number').addEventListener('blur', function() {
+        this.parentElement.classList.remove('focused');
+        this.parentElement.parentElement.classList.remove('glow');
+    });
+    
+    // 添加輸入驗證提示
+    const searchInput = document.getElementById('search_lot_number');
+    searchInput.addEventListener('input', function() {
+        if (this.value.length > 0) {
+            this.style.borderColor = '#7c3aed';
+            this.style.boxShadow = '0 0 0 4px rgba(124, 58, 237, 0.1)';
+        } else {
+            this.style.borderColor = '';
+            this.style.boxShadow = '';
+        }
+    });
+    
+    console.log('批號查詢頁面初始化完成');
+});
+</script>
+{% endblock %}

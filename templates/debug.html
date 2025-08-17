@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}系統診斷 - 試劑批號確認系統{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-white mb-3 text-gradient">
+                <i class="bi bi-tools me-3"></i>
+                系統診斷
+            </h1>
+            <p class="lead text-white-50 fs-4">檢查系統狀態和資料載入問題</p>
+        </div>
+
+        <!-- 系統狀態檢查 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0 text-white">
+                    <i class="bi bi-info-circle me-2"></i>
+                    系統狀態檢查
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="systemStatus">
+                    <div class="text-center">
+                        <div class="loading-spinner mx-auto mb-3"></div>
+                        <p>正在檢查系統狀態...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API 測試 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0 text-white">
+                    <i class="bi bi-arrow-left-right me-2"></i>
+                    API 連接測試
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-primary w-100 mb-3" onclick="testGetAllReagents()">
+                            <i class="bi bi-download me-2"></i>
+                            測試獲取所有試劑
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-success w-100 mb-3" onclick="testDatabaseConnection()">
+                            <i class="bi bi-database me-2"></i>
+                            測試資料庫連接
+                        </button>
+                    </div>
+                </div>
+                <div id="apiTestResults"></div>
+            </div>
+        </div>
+
+        <!-- 資料顯示 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0 text-white">
+                    <i class="bi bi-table me-2"></i>
+                    資料庫內容
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="databaseContent">
+                    <div class="text-center">
+                        <div class="loading-spinner mx-auto mb-3"></div>
+                        <p>正在載入資料庫內容...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 頁面載入時自動執行診斷
+    checkSystemStatus();
+    loadDatabaseContent();
+});
+
+function checkSystemStatus() {
+    const statusDiv = document.getElementById('systemStatus');
+    
+    // 檢查瀏覽器相容性
+    const browserInfo = {
+        userAgent: navigator.userAgent,
+        cookieEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
+        language: navigator.language
+    };
+    
+    // 檢查 JavaScript 函數
+    const jsFunctions = {
+        fetch: typeof fetch !== 'undefined',
+        showAlert: typeof showAlert !== 'undefined',
+        formatDate: typeof formatDate !== 'undefined',
+        isExpired: typeof isExpired !== 'undefined'
+    };
+    
+    let statusHtml = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-primary">瀏覽器資訊</h6>
+                <ul class="list-unstyled">
+                    <li><strong>User Agent:</strong> ${browserInfo.userAgent}</li>
+                    <li><strong>Cookie 啟用:</strong> ${browserInfo.cookieEnabled ? '✓' : '✗'}</li>
+                    <li><strong>網路連線:</strong> ${browserInfo.onLine ? '✓' : '✗'}</li>
+                    <li><strong>語言:</strong> ${browserInfo.language}</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-primary">JavaScript 函數</h6>
+                <ul class="list-unstyled">
+                    <li><strong>fetch:</strong> ${jsFunctions.fetch ? '✓' : '✗'}</li>
+                    <li><strong>showAlert:</strong> ${jsFunctions.showAlert ? '✓' : '✗'}</li>
+                    <li><strong>formatDate:</strong> ${jsFunctions.formatDate ? '✓' : '✗'}</li>
+                    <li><strong>isExpired:</strong> ${jsFunctions.isExpired ? '✓' : '✗'}</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    statusDiv.innerHTML = statusHtml;
+}
+
+function testGetAllReagents() {
+    const resultsDiv = document.getElementById('apiTestResults');
+    resultsDiv.innerHTML = '<div class="text-center"><div class="loading-spinner mx-auto mb-3"></div><p>測試中...</p></div>';
+    
+    fetch('/api/get_all_reagents')
+        .then(response => {
+            const status = response.status;
+            const statusText = response.statusText;
+            
+            return response.json().then(data => {
+                return { status, statusText, data };
+            });
+        })
+        .then(result => {
+            let resultHtml = `
+                <div class="alert alert-info">
+                    <h6>API 測試結果</h6>
+                    <p><strong>狀態碼:</strong> ${result.status} ${result.statusText}</p>
+                    <p><strong>回應資料:</strong></p>
+                    <pre class="bg-light p-3 rounded">${JSON.stringify(result.data, null, 2)}</pre>
+                </div>
+            `;
+            
+            if (result.data.success) {
+                const reagents = result.data.data;
+                resultHtml += `
+                    <div class="alert alert-success">
+                        <h6>✓ API 測試成功</h6>
+                        <p>成功獲取 ${reagents.length} 筆試劑記錄</p>
+                    </div>
+                `;
+            } else {
+                resultHtml += `
+                    <div class="alert alert-warning">
+                        <h6>⚠ API 回應異常</h6>
+                        <p>${result.data.message}</p>
+                    </div>
+                `;
+            }
+            
+            resultsDiv.innerHTML = resultHtml;
+        })
+        .catch(error => {
+            resultsDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6>✗ API 測試失敗</h6>
+                    <p>錯誤訊息: ${error.message}</p>
+                    <p>請檢查 Flask 應用程式是否正在運行</p>
+                </div>
+            `;
+        });
+}
+
+function testDatabaseConnection() {
+    const resultsDiv = document.getElementById('apiTestResults');
+    resultsDiv.innerHTML = '<div class="text-center"><div class="loading-spinner mx-auto mb-3"></div><p>測試資料庫連接...</p></div>';
+    
+    // 使用現有的 API 來測試資料庫連接
+    fetch('/api/get_all_reagents')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <h6>✓ 資料庫連接正常</h6>
+                        <p>資料庫回應正常，包含 ${data.data.length} 筆記錄</p>
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-warning">
+                        <h6>⚠ 資料庫回應異常</h6>
+                        <p>${data.message}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            resultsDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6>✗ 資料庫連接失敗</h6>
+                    <p>無法連接到資料庫: ${error.message}</p>
+                </div>
+            `;
+        });
+}
+
+function loadDatabaseContent() {
+    const contentDiv = document.getElementById('databaseContent');
+    
+    fetch('/api/get_all_reagents')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.length > 0) {
+                const reagents = data.data;
+                let contentHtml = `
+                    <h6 class="text-primary mb-3">資料庫記錄 (共 ${reagents.length} 筆)</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>檢驗項目</th>
+                                    <th>批號</th>
+                                    <th>有效期限</th>
+                                    <th>儲存時間</th>
+                                    <th>狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                reagents.forEach(reagent => {
+                    const isExpired = isExpired(reagent.expiration_date);
+                    const statusClass = isExpired ? 'text-danger' : 'text-success';
+                    const statusText = isExpired ? '已過期' : '使用中';
+                    
+                    contentHtml += `
+                        <tr>
+                            <td>${reagent.id}</td>
+                            <td><strong>${reagent.item}</strong></td>
+                            <td><code>${reagent.lot_number}</code></td>
+                            <td>${formatDate(reagent.expiration_date)}</td>
+                            <td>${formatDateTime(reagent.stored_date)}</td>
+                            <td><span class="${statusClass}">${statusText}</span></td>
+                        </tr>
+                    `;
+                });
+                
+                contentHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                contentDiv.innerHTML = contentHtml;
+            } else {
+                contentDiv.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="bi bi-inbox display-4 d-block mb-3"></i>
+                        <p>資料庫中沒有記錄</p>
+                        <small>或者 API 回應異常: ${data.message || '未知錯誤'}</small>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            contentDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6>✗ 載入資料失敗</h6>
+                    <p>錯誤訊息: ${error.message}</p>
+                    <p>請檢查系統是否正常運行</p>
+                </div>
+            `;
+        });
+}
+</script>
+{% endblock %}

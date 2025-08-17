@@ -1,0 +1,13 @@
+# 試劑批號確認系統套件需求
+# 安裝指令：pip install -r requirements.txt
+
+# Web 框架
+Flask>=2.3.0
+
+# 資料庫（SQLite 已包含在 Python 標準庫中）
+# 無需額外安裝
+
+# 其他必要套件（通常已包含在 Python 標準庫中）
+# datetime
+# os
+# werkzeug

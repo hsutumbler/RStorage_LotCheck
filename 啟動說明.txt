@@ -1,0 +1,65 @@
+試劑批號確認系統 - 啟動說明
+========================================
+
+📁 檔案說明：
+- start_app.bat          - 完整功能的批次啟動檔案（推薦）
+- start_app.ps1          - PowerShell 腳本啟動器（進階功能）
+- 啟動程式.bat           - 簡化中文啟動檔案
+- app.py                 - 主程式檔案
+- requirements.txt       - 依賴套件清單
+
+🚀 快速啟動方法：
+
+方法 1：雙擊啟動（最簡單）
+1. 雙擊 "啟動程式.bat" 檔案
+2. 等待系統啟動完成
+3. 在瀏覽器中開啟 http://localhost:5000
+
+方法 2：完整功能啟動
+1. 雙擊 "start_app.bat" 檔案
+2. 系統會自動檢查環境並安裝套件
+3. 啟動完成後在瀏覽器中開啟 http://localhost:5000
+
+方法 3：PowerShell 啟動（進階使用者）
+1. 右鍵點擊 "start_app.ps1" → "使用 PowerShell 執行"
+2. 或開啟 PowerShell 執行：.\start_app.ps1
+
+📋 使用參數：
+PowerShell 腳本支援以下參數：
+- .\start_app.ps1 -Install    # 安裝/更新套件
+- .\start_app.ps1 -Help       # 顯示說明
+
+⚠️ 注意事項：
+1. 首次使用建議先執行 -Install 參數安裝套件
+2. 需要安裝 Python 3.7 或更新版本
+3. 確保防火牆允許端口 5000
+4. 如遇問題請檢查終端機錯誤訊息
+
+🔧 故障排除：
+1. 如果提示 "python 不是內部或外部命令"
+   → 請安裝 Python 並勾選 "Add Python to PATH"
+
+2. 如果端口被占用
+   → 系統會自動選擇其他可用端口
+
+3. 如果套件安裝失敗
+   → 執行 .\start_app.ps1 -Install 重新安裝
+
+4. 如果 PowerShell 執行政策限制
+   → 執行：Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+📞 技術支援：
+如遇問題，請檢查：
+- Python 版本是否正確
+- 必要檔案是否完整
+- 終端機錯誤訊息
+- 防火牆設定
+
+🎯 系統功能：
+- 新增試劑批號
+- 查詢批號狀態
+- 查看批號列表
+- 過期提醒功能
+- 現代化美觀介面
+
+祝您使用愉快！
