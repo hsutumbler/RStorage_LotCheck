@@ -570,34 +570,34 @@ function printReagentLabel(item, lotNumber, expirationDate, storedDate, quantity
     for (let i = 0; i < quantity; i++) {
         labelsHTML += `
             <div class="label">
-                <div class="label-header">入庫</div>
+                <div class="label-header">【入庫資料】</div>
                 <div class="label-content">
                     <div class="info-row">
-                        <span class="info-label">名稱：</span>
+                        <span class="info-label">名稱:</span>
                         <span class="info-value">${item}</span>
-                        <span class="info-label">有效日期：</span>
-                        <span class="info-value">${expirationDate}</span>
+                        <span class="info-label-right">入庫日期:</span>
+                        <span class="info-value-right">${storedDate.split('T')[0]}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">批號：</span>
+                        <span class="info-label">批號:</span>
                         <span class="info-value">${lotNumber}</span>
-                        <span class="info-label">入庫日期：</span>
-                        <span class="info-value">${storedDate.split('T')[0]}</span>
+                        <span class="info-label-right">有效日期:</span>
+                        <span class="info-value-right">${expirationDate}</span>
                     </div>
                 </div>
                 
                 <div class="label-divider"></div>
                 
-                <div class="label-header">出庫</div>
+                <div class="label-header">【出庫資料】</div>
                 <div class="label-content">
                     <div class="info-row">
-                        <span class="info-label">出庫日期：</span>
+                        <span class="info-label">出庫人員:</span>
                         <span class="info-value">
                             <div class="blank-line"></div>
                         </span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">出庫人員：</span>
+                        <span class="info-label">出庫日期:</span>
                         <span class="info-value">
                             <div class="blank-line"></div>
                         </span>
@@ -659,38 +659,51 @@ function printReagentLabel(item, lotNumber, expirationDate, storedDate, quantity
                 .label-header {
                     background: #f0f0f0;
                     text-align: center;
-                    font-size: 7pt;
+                    font-size: 6pt;
                     font-weight: bold;
-                    padding: 1mm 0;
+                    padding: 0.6mm 0;
                     border-bottom: 0.3mm solid #000;
-                    height: 4mm;
-                    line-height: 2mm;
+                    height: 3mm;
+                    line-height: 1.8mm;
                 }
                 
                 .label-content {
-                    padding: 1.5mm;
+                    padding: 0.6mm;
                 }
                 
                 .info-row {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 2mm;
-                    height: 3.5mm;
+                    margin-bottom: 1.2mm;
+                    height: 2.8mm;
                 }
                 
                 .info-label {
-                    font-size: 6pt;
+                    font-size: 5pt;
                     font-weight: bold;
                     min-width: 8mm;
                     text-align: left;
                 }
                 
                 .info-value {
-                    font-size: 6pt;
-                    min-width: 12mm;
+                    font-size: 5pt;
+                    min-width: 10mm;
                     text-align: left;
-                    flex: 1;
+                }
+                
+                .info-label-right {
+                    font-size: 5pt;
+                    font-weight: bold;
+                    min-width: 8mm;
+                    text-align: left;
+                    margin-left: 2mm;
+                }
+                
+                .info-value-right {
+                    font-size: 5pt;
+                    min-width: 10mm;
+                    text-align: left;
                 }
                 
                 .blank-line {
@@ -701,7 +714,7 @@ function printReagentLabel(item, lotNumber, expirationDate, storedDate, quantity
                 
                 .label-divider {
                     border-top: 0.3mm solid #000;
-                    margin: 1mm 0;
+                    margin: 0.6mm 0;
                     height: 0.3mm;
                 }
                 
@@ -786,7 +799,7 @@ function printReagentLabel(item, lotNumber, expirationDate, storedDate, quantity
             
             <div class="print-instructions no-print">
                 <h4>列印說明</h4>
-                <p><strong>標籤尺寸：</strong>5cm × 3.5cm (橫向)</p>
+                <p><strong>標籤尺寸：</strong>3.5cm × 5cm (橫向)</p>
                 <p><strong>列印設定：</strong>請選擇「實際大小」或「100%」列印</p>
                 <p><strong>邊距設定：</strong>建議設定為「無邊距」或「最小邊距」</p>
             </div>
