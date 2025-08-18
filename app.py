@@ -33,6 +33,9 @@ def init_db():
             item TEXT NOT NULL,
             lot_number TEXT UNIQUE NOT NULL,
             expiration_date TEXT NOT NULL,
+            quantity INTEGER DEFAULT 1,
+            unit TEXT,
+            supplier TEXT,
             stored_date TEXT NOT NULL
         )
     ''')
@@ -107,11 +110,16 @@ def save_reagent():
         # 獲取當前時間
         current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
+        # 獲取其他欄位
+        quantity = data.get('quantity', 1)
+        unit = data.get('unit', '').strip()
+        supplier = data.get('supplier', '').strip()
+        
         # 插入新記錄
         cursor.execute('''
-            INSERT INTO used_reagents (item, lot_number, expiration_date, stored_date)
-            VALUES (?, ?, ?, ?)
-        ''', (item, lot_number, expiration_date, current_time))
+            INSERT INTO used_reagents (item, lot_number, expiration_date, quantity, unit, supplier, stored_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (item, lot_number, expiration_date, quantity, unit, supplier, current_time))
         
         conn.commit()
         conn.close()
@@ -146,7 +154,7 @@ def search_reagent():
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, item, lot_number, expiration_date, stored_date
+            SELECT id, item, lot_number, expiration_date, quantity, unit, supplier, stored_date
             FROM used_reagents 
             WHERE lot_number = ?
         ''', (lot_number,))
@@ -172,6 +180,9 @@ def search_reagent():
                     'item': result['item'],
                     'lot_number': result['lot_number'],
                     'expiration_date': result['expiration_date'],
+                    'quantity': result['quantity'],
+                    'unit': result['unit'],
+                    'supplier': result['supplier'],
                     'stored_date': result['stored_date'],
                     'is_expired': is_expired
                 }
@@ -197,7 +208,7 @@ def get_all_reagents():
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, item, lot_number, expiration_date, stored_date
+            SELECT id, item, lot_number, expiration_date, quantity, unit, supplier, stored_date
             FROM used_reagents 
             ORDER BY stored_date DESC
         ''')
@@ -220,6 +231,9 @@ def get_all_reagents():
                 'item': row['item'],
                 'lot_number': row['lot_number'],
                 'expiration_date': row['expiration_date'],
+                'quantity': row['quantity'],
+                'unit': row['unit'],
+                'supplier': row['supplier'],
                 'stored_date': row['stored_date'],
                 'is_expired': is_expired
             })

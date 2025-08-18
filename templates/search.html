@@ -6,28 +6,17 @@
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <!-- 頁面標題 -->
-        <div class="text-center mb-5">
-            <div class="position-relative d-inline-block mb-4">
-                <h1 class="display-3 fw-bold text-white mb-3 text-gradient">
-                    <i class="bi bi-search me-3 floating"></i>
-                    批號查詢
+        <div class="text-center mb-3">
+            <div class="position-relative d-inline-block mb-2">
+                <h1 class="display-3 fw-bold text-white mb-2 text-gradient">
+                    
                 </h1>
                 <div class="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-10 rounded-pill blur-sm" style="filter: blur(20px); z-index: -1;"></div>
             </div>
-            <p class="lead text-white-50 fs-4 mb-4">
-                快速查詢試劑批號使用狀態，確保檢驗品質與安全
+            <p class="lead text-white-50 fs-4 mb-2">
+                
             </p>
-            <div class="d-flex justify-content-center gap-3 flex-wrap">
-                <div class="badge bg-primary bg-opacity-20 text-white px-3 py-2 fs-6">
-                    <i class="bi bi-search me-1"></i>快速查詢
-                </div>
-                <div class="badge bg-success bg-opacity-20 text-white px-3 py-2 fs-6">
-                    <i class="bi bi-shield-check me-1"></i>即時驗證
-                </div>
-                <div class="badge bg-info bg-opacity-20 text-white px-3 py-2 fs-6">
-                    <i class="bi bi-clock me-1"></i>狀態追蹤
-                </div>
-            </div>
+
         </div>
 
         <!-- 查詢表單 -->
@@ -35,7 +24,7 @@
             <div class="card-header position-relative">
                 <div class="d-flex align-items-center">
                     <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
-                        <i class="bi bi-search display-6 text-white"></i>
+                        
                     </div>
                     <div>
                         <h3 class="mb-1 text-white">批號查詢</h3>
@@ -44,7 +33,7 @@
                 </div>
                 <div class="position-absolute top-0 end-0 p-3">
                     <div class="bg-white bg-opacity-20 rounded-circle p-2">
-                        <i class="bi bi-lightbulb text-white"></i>
+                        
                     </div>
                 </div>
             </div>
@@ -52,7 +41,7 @@
                 <div class="row align-items-end">
                     <div class="col-md-8">
                         <label for="search_lot_number" class="form-label">
-                            <i class="bi bi-upc-scan text-primary"></i>
+                            
                             批號 <span class="text-danger">*</span>
                         </label>
                         <div class="position-relative">
@@ -60,17 +49,17 @@
                                    id="search_lot_number" name="search_lot_number" 
                                    placeholder="請輸入要查詢的批號..." required>
                             <div class="position-absolute top-50 end-0 translate-middle-y me-3">
-                                <i class="bi bi-upc text-muted"></i>
+                                
                             </div>
                         </div>
                         <div class="form-text">
-                            <i class="bi bi-info-circle me-1"></i>
+                            
                             例如：AFP001、CEA001...
                         </div>
                     </div>
                     <div class="col-md-4">
                         <button type="button" class="btn btn-primary btn-lg w-100" id="searchBtn">
-                            <i class="bi bi-search me-2"></i>
+                            
                             查詢批號
                         </button>
                     </div>
@@ -83,7 +72,7 @@
             <div class="card-header">
                 <div class="d-flex align-items-center">
                     <div class="bg-info bg-opacity-20 rounded-circle p-3 me-3">
-                        <i class="bi bi-info-circle display-6 text-info"></i>
+                        
                     </div>
                     <div>
                         <h5 class="mb-1 text-white">查詢結果</h5>
@@ -132,7 +121,7 @@ function performSearch() {
     if (!lotNumber) {
         showAlert(`
             <div class="d-flex align-items-center">
-                <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-4"></i>
+                
                 <div>
                     <strong>請輸入批號</strong><br>
                     <small>請輸入要查詢的批號</small>
@@ -145,7 +134,7 @@ function performSearch() {
     
     // 顯示載入狀態
     searchBtn.disabled = true;
-    searchBtn.innerHTML = '<div class="loading-spinner me-2"></div>查詢中...';
+            searchBtn.innerHTML = '查詢中...';
     
     // 發送查詢請求
     fetch('/api/search_reagent', {
@@ -162,7 +151,7 @@ function performSearch() {
         } else {
             showAlert(`
                 <div class="d-flex align-items-center">
-                    <i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-4"></i>
+                    
                     <div>
                         <strong>查詢失敗</strong><br>
                         <small>${data.message}</small>
@@ -175,7 +164,7 @@ function performSearch() {
         console.error('Error:', error);
         showAlert(`
             <div class="d-flex align-items-center">
-                <i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-4"></i>
+                
                 <div>
                     <strong>系統錯誤</strong><br>
                     <small>查詢失敗，請稍後再試</small>
@@ -186,7 +175,7 @@ function performSearch() {
     .finally(() => {
         // 恢復按鈕狀態
         searchBtn.disabled = false;
-        searchBtn.innerHTML = '<i class="bi bi-search me-2"></i>查詢批號';
+        searchBtn.innerHTML = '查詢批號';
     });
 }
 
@@ -225,9 +214,45 @@ function displaySearchResult(data) {
                     </div>
                 </div>
                 <div class="col-md-6">
+                    <div class="bg-light rounded-3 p-3 border-start border-4 border-warning">
+                        <label class="form-label fw-bold text-muted">數量</label>
+                        <p class="mb-0 fs-5">${reagent.quantity || 1}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="bg-light rounded-3 p-3 border-start border-4 border-info">
+                        <label class="form-label fw-bold text-muted">單位</label>
+                        <p class="mb-0 fs-5">${reagent.unit || '-'}</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light rounded-3 p-3 border-start border-4 border-success">
+                        <label class="form-label fw-bold text-muted">供應商</label>
+                        <p class="mb-0 fs-5">${reagent.supplier || '-'}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-md-6">
                     <div class="bg-light rounded-3 p-3 border-start border-4 border-secondary">
                         <label class="form-label fw-bold text-muted">儲存時間</label>
                         <p class="mb-0 fs-5">${formatDateTime(reagent.stored_date)}</p>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="bg-light rounded-3 p-3 border-start border-4 border-info">
+                        <label class="form-label fw-bold text-muted">狀態</label>
+                        <p class="mb-0">
+                            <span class="status-badge ${expired ? 'status-expired' : 'status-used'}">
+                                <i class="bi ${expired ? 'bi-exclamation-triangle' : 'bi-check-circle'} me-1"></i>
+                                ${expired ? '已過期' : '使用中'}
+                            </span>
+                        </p>
+                        ${expired ? '<div class="alert alert-danger mt-3"><i class="bi bi-exclamation-triangle me-2"></i>此批號已超過有效期限，請注意使用</div>' : ''}
                     </div>
                 </div>
             </div>
