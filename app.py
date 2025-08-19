@@ -96,19 +96,29 @@ def save_reagent():
         cursor.execute('SELECT id, item, stored_date FROM used_reagents WHERE lot_number = ?', (lot_number,))
         existing = cursor.fetchone()
         
-        if existing:
-            conn.close()
-            return jsonify({
-                'success': False, 
-                'message': f'批號 {lot_number} 已經存在於系統中',
-                'details': {
-                    'item': existing['item'],
-                    'stored_date': existing['stored_date']
-                }
-            }), 400
-        
         # 獲取當前時間
         current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        if existing:
+            # 舊批號：更新數量，不顯示確認視窗
+            quantity = data.get('quantity', 1)
+            unit = data.get('unit', '').strip()
+            supplier = data.get('supplier', '').strip()
+            
+            # 更新現有記錄的數量和供應商資訊
+            cursor.execute('''
+                UPDATE used_reagents 
+                SET quantity = quantity + ?, unit = ?, supplier = ?, stored_date = ?
+                WHERE lot_number = ?
+            ''', (quantity, unit, supplier, current_time, lot_number))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'success': True,
+                'message': f'舊批號 {lot_number} 數量已更新，新增 {quantity} 個單位'
+            })
         
         # 獲取其他欄位
         quantity = data.get('quantity', 1)

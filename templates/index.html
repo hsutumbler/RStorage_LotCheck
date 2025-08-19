@@ -396,31 +396,37 @@ function submitForm() {
         body: JSON.stringify(formData)
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-                             // 顯示成功訊息（需要使用者確認）
-               showConfirmAlert(`
-                <div class="d-flex align-items-center">
-                    <div>
-                        <strong>儲存成功！</strong><br>
-                        <small>${data.message}</small>
-                    </div>
-                </div>
-                   <div class="mt-3">
-                       <button type="button" class="btn btn-success btn-sm" onclick="printMultipleLabels('${formData.item}', '${formData.lot_number}', '${formData.expiration_date}', '${new Date().toISOString().split('T')[0]}', ${formData.quantity})">
-                           <i class="bi bi-printer me-1"></i>重新列印 ${formData.quantity} 張標籤
-                       </button>
-                   </div>
-               `, 'success', () => {
-                   // 使用者按確定後才自動列印標籤
-                   printMultipleLabels(formData.item, formData.lot_number, formData.expiration_date, new Date().toISOString().split('T')[0], formData.quantity);
-               });
-              
-            form.reset();
-            // 重新設定預設日期
-            const today = new Date();
-            const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-            document.getElementById('expiration_date').value = nextYear.toISOString().split('T')[0];
+         .then(data => {
+         if (data.success) {
+             // 檢查是否為新批號（根據後端回傳的訊息判斷）
+             if (data.message && data.message.includes('數量已更新')) {
+                 // 舊批號：直接列印標籤，不顯示成功視窗
+                 printMultipleLabels(formData.item, formData.lot_number, formData.expiration_date, new Date().toISOString().split('T')[0], formData.quantity);
+             } else {
+                 // 新批號：顯示確認視窗，使用者確認後才列印標籤
+                 showConfirmAlert(`
+                     <div class="d-flex align-items-center">
+                         <div>
+                             <strong>新批號試劑入庫成功！</strong><br>
+                             <small>${data.message}</small>
+                         </div>
+                     </div>
+                     <div class="mt-3">
+                         <button type="button" class="btn btn-success btn-sm" onclick="printMultipleLabels('${formData.item}', '${formData.lot_number}', '${formData.expiration_date}', '${new Date().toISOString().split('T')[0]}', ${formData.quantity})">
+                             <i class="bi bi-printer me-1"></i>重新列印 ${formData.quantity} 張標籤
+                         </button>
+                     </div>
+                 `, 'success', () => {
+                     // 使用者按確定後才自動列印標籤
+                     printMultipleLabels(formData.item, formData.lot_number, formData.expiration_date, new Date().toISOString().split('T')[0], formData.quantity);
+                 });
+             }
+             
+             form.reset();
+             // 重新設定預設日期
+             const today = new Date();
+             const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+             document.getElementById('expiration_date').value = nextYear.toISOString().split('T')[0];
              
         } else {
             if (data.details) {
@@ -466,275 +472,297 @@ function submitForm() {
     });
 }
 
- // 列印多張試劑標籤（根據入庫數量）
-function printMultipleLabels(item, lotNumber, expirationDate, inboundDate, quantity) {
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    
-    // 格式化入庫日期，只保留年月日
-    const formatDateOnly = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0]; // 只取 YYYY-MM-DD 部分
-    };
-    
-    const formattedInboundDate = formatDateOnly(inboundDate);
-    
-    // 生成多張標籤的HTML內容
-    let labelsHTML = '';
-    for (let i = 0; i < quantity; i++) {
-        labelsHTML += `
-            <div class="label">
-                <div class="label-header">【入庫資料】</div>
-                <div class="label-content">
-                    <div class="info-row">
-                        <span class="info-label">名稱:</span>
-                        <span class="info-value">${item}</span>
-                        <span class="info-label-right">入庫日期:</span>
-                        <span class="info-value-right">${formattedInboundDate}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">批號:</span>
-                        <span class="info-value">${lotNumber}</span>
-                        <span class="info-label-right">有效日期:</span>
-                        <span class="info-value-right">${expirationDate}</span>
-                    </div>
-                </div>
-                
-                <div class="label-divider"></div>
-                
-                <div class="label-header">【出庫資料】</div>
-                <div class="label-content">
-                    <div class="info-row">
-                        <span class="info-label">出庫人員:</span>
-                        <span class="info-value">
-                            <div class="blank-line"></div>
-                        </span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">出庫日期:</span>
-                        <span class="info-value">
-                            <div class="blank-line"></div>
-                        </span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    const labelContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>試劑標籤 - ${quantity}張</title>
-            <style>
-                @media print {
-                    body { 
-                        margin: 0; 
-                        padding: 0;
-                    }
-                    .label { 
-                        page-break-inside: avoid; 
-                        break-inside: avoid;
-                    }
-                    .no-print {
-                        display: none !important;
-                    }
-                }
-                
-                body {
-                    margin: 0;
-                    padding: 0;
-                    font-family: "Microsoft JhengHei", Arial, sans-serif;
-                    background: white;
-                }
-                
-                .labels-container {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 2mm;
-                    padding: 5mm;
-                    justify-content: flex-start;
-                    align-items: flex-start;
-                }
-                
-                .label {
-                    width: 50mm;
-                    height: 35mm;
-                    border: 0.5mm solid #000;
-                    box-sizing: border-box;
-                    display: inline-block;
-                    margin: 0;
-                    background: white;
-                    position: relative;
-                    overflow: hidden;
-                }
-                
-                .label-header {
-                    background: #f0f0f0;
-                    text-align: center;
-                    font-size: 6pt;
-                    font-weight: bold;
-                    padding: 0.6mm 0;
-                    border-bottom: 0.3mm solid #000;
-                    height: 3mm;
-                    line-height: 1.8mm;
-                }
-                
-                .label-content {
-                    padding: 0.6mm;
-                }
-                
-                .info-row {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1.2mm;
-                    height: 2.8mm;
-                }
-                
-                .info-label {
-                    font-size: 5pt;
-                    font-weight: bold;
-                    min-width: 8mm;
-                    text-align: left;
-                }
-                
-                .info-value {
-                    font-size: 5pt;
-                    min-width: 10mm;
-                    text-align: left;
-                }
-                
-                .info-label-right {
-                    font-size: 5pt;
-                    font-weight: bold;
-                    min-width: 8mm;
-                    text-align: left;
-                    margin-left: 2mm;
-                }
-                
-                .info-value-right {
-                    font-size: 5pt;
-                    min-width: 10mm;
-                    text-align: left;
-                }
-                
-                .blank-line {
-                    border-bottom: 0.3mm solid #000;
-                    height: 2mm;
-                    width: 100%;
-                }
-                
-                .label-divider {
-                    border-top: 0.3mm solid #000;
-                    margin: 0.6mm 0;
-                    height: 0.3mm;
-                }
-                
-                .print-button {
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    z-index: 1000;
-                    padding: 10px 20px;
-                    background: #007bff;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-size: 14px;
-                }
-                
-                .print-button:hover {
-                    background: #0056b3;
-                }
-                
-                .info-panel {
-                    position: fixed;
-                    top: 20px;
-                    left: 20px;
-                    background: #f8f9fa;
-                    padding: 15px;
-                    border-radius: 5px;
-                    border: 1px solid #dee2e6;
-                    font-size: 14px;
-                    max-width: 300px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
-                
-                .info-panel h3 {
-                    margin: 0 0 10px 0;
-                    color: #495057;
-                }
-                
-                .info-panel p {
-                    margin: 5px 0;
-                    color: #6c757d;
-                }
-                
-                .print-instructions {
-                    position: fixed;
-                    bottom: 20px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: #fff3cd;
-                    border: 1px solid #ffeaa7;
-                    padding: 15px;
-                    border-radius: 5px;
-                    text-align: center;
-                    max-width: 500px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
-                
-                .print-instructions h4 {
-                    margin: 0 0 10px 0;
-                    color: #856404;
-                }
-                
-                .print-instructions p {
-                    margin: 5px 0;
-                    color: #856404;
-                    font-size: 14px;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="info-panel no-print">
-                <h3>列印資訊</h3>
-                <p><strong>檢驗項目：</strong>${item}</p>
-                <p><strong>批號：</strong>${lotNumber}</p>
-                <p><strong>有效期限：</strong>${expirationDate}</p>
-                <p><strong>入庫日期：</strong>${formattedInboundDate}</p>
-                <p><strong>列印數量：</strong>${quantity} 張</p>
-            </div>
-            
-            <button class="print-button no-print" onclick="window.print()">列印 ${quantity} 張標籤</button>
-            
-                         <div class="print-instructions no-print">
+  // 列印多張試劑標籤（根據入庫數量）
+ function printMultipleLabels(item, lotNumber, expirationDate, inboundDate, quantity) {
+     // 格式化入庫日期，只保留年月日
+     const formatDateOnly = (dateString) => {
+         if (!dateString) return '';
+         const date = new Date(dateString);
+         return date.toISOString().split('T')[0]; // 只取 YYYY-MM-DD 部分
+     };
+     
+     const formattedInboundDate = formatDateOnly(inboundDate);
+     
+     // 生成單張標籤的HTML內容
+     const singleLabelHTML = `
+         <div class="label">
+             <div class="label-header">【入庫資料】</div>
+             <div class="label-content">
+                 <div class="info-row">
+                     <span class="info-label">名稱：</span>
+                     <span class="info-value">${item}</span>
+                     <span class="info-label-right">批號：</span>
+                     <span class="info-value-right">${lotNumber}</span>
+                 </div>
+                 <div class="info-row">
+                     <span class="info-label">有效日期：</span>
+                     <span class="info-value">${expirationDate}</span>
+                 </div>
+                 <div class="info-row">
+                     <span class="info-label">入庫日期：</span>
+                     <span class="info-value">${formattedInboundDate}</span>
+                 </div>
+             </div>
+             
+             <div class="label-divider"></div>
+             
+             <div class="label-header">【出庫資料】</div>
+             <div class="label-content">
+                 <div class="info-row outbound">
+                     <span class="info-label">出庫人員：</span>
+                     <span class="info-value">
+                         <div class="blank-line"></div>
+                     </span>
+                     <span class="info-label-right">出庫日期：</span>
+                     <span class="info-value-right">
+                         <div class="blank-line"></div>
+                     </span>
+                 </div>
+             </div>
+         </div>
+     `;
+     
+     const labelContent = `
+         <!DOCTYPE html>
+         <html>
+         <head>
+             <meta charset="UTF-8">
+             <title>試劑標籤 - ${quantity}張</title>
+             <style>
+                 @media print {
+                     body { 
+                         margin: 0; 
+                         padding: 0;
+                     }
+                     .label { 
+                         page-break-inside: avoid; 
+                         break-inside: avoid;
+                     }
+                     .no-print {
+                         display: none !important;
+                     }
+                 }
+                 
+                 body {
+                     margin: 0;
+                     padding: 0;
+                     font-family: "Microsoft JhengHei", Arial, sans-serif;
+                     background: white;
+                 }
+                 
+                 .labels-container {
+                     display: flex;
+                     flex-direction: column;
+                     gap: 5mm;
+                     padding: 5mm;
+                     justify-content: flex-start;
+                     align-items: center;
+                 }
+                 
+                 .label {
+                     width: 50mm;
+                     height: 35mm;
+                     border: 0.5mm solid #000;
+                     box-sizing: border-box;
+                     display: block;
+                     margin: 0;
+                     background: white;
+                     position: relative;
+                     overflow: hidden;
+                 }
+                 
+                 .label-header {
+                     background: #f0f0f0;
+                     text-align: center;
+                     font-size: 6pt;
+                     font-weight: bold;
+                     padding: 0.6mm 0;
+                     border-bottom: 0.3mm solid #000;
+                     height: 3mm;
+                     line-height: 1.8mm;
+                 }
+                 
+                 .label-content {
+                     padding: 0.6mm;
+                 }
+                 
+                 .info-row {
+                     display: flex;
+                     justify-content: flex-start;
+                     align-items: center;
+                     margin-bottom: 1.2mm;
+                     height: 2.8mm;
+                     gap: 1mm;
+                 }
+                 
+                 .info-row.outbound {
+                     margin-top: 0.8mm;
+                     margin-bottom: 1.2mm;
+                 }
+                 
+                 .info-label {
+                     font-size: 5pt;
+                     font-weight: bold;
+                     min-width: 8mm;
+                     text-align: left;
+                     flex-shrink: 0;
+                 }
+                 
+                 .info-value {
+                     font-size: 5pt;
+                     min-width: 10mm;
+                     text-align: left;
+                     flex-shrink: 0;
+                 }
+                 
+                 .info-label-right {
+                     font-size: 5pt;
+                     font-weight: bold;
+                     min-width: 8mm;
+                     text-align: left;
+                     margin-left: 2mm;
+                     flex-shrink: 0;
+                 }
+                 
+                 .info-value-right {
+                     font-size: 5pt;
+                     min-width: 10mm;
+                     text-align: left;
+                     flex-shrink: 0;
+                 }
+                 
+                 .blank-line {
+                     border-bottom: 0.3mm solid #000;
+                     height: 2mm;
+                     width: 100%;
+                 }
+                 
+                 .label-divider {
+                     border-top: 0.3mm solid #000;
+                     margin: 0.6mm 0;
+                     height: 0.3mm;
+                 }
+                 
+                 .print-button {
+                     position: fixed;
+                     top: 20px;
+                     right: 20px;
+                     z-index: 1000;
+                     padding: 10px 20px;
+                     background: #007bff;
+                     color: white;
+                     border: none;
+                     border-radius: 5px;
+                     cursor: pointer;
+                     font-size: 14px;
+                 }
+                 
+                 .print-button:hover {
+                     background: #0056b3;
+                 }
+                 
+                 .info-panel {
+                     position: fixed;
+                     top: 20px;
+                     left: 20px;
+                     background: #f8f9fa;
+                     padding: 15px;
+                     border-radius: 5px;
+                     border: 1px solid #dee2e6;
+                     font-size: 14px;
+                     max-width: 300px;
+                     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                 }
+                 
+                 .info-panel h3 {
+                     margin: 0 0 10px 0;
+                     color: #495057;
+                 }
+                 
+                 .info-panel p {
+                     margin: 5px 0;
+                     color: #6c757d;
+                 }
+                 
+                 .print-instructions {
+                     position: fixed;
+                     bottom: 20px;
+                     left: 50%;
+                     transform: translateX(-50%);
+                     background: #fff3cd;
+                     border: 1px solid #ffeaa7;
+                     padding: 15px;
+                     border-radius: 5px;
+                     text-align: center;
+                     max-width: 500px;
+                     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                 }
+                 
+                 .print-instructions h4 {
+                     margin: 0 0 10px 0;
+                     color: #856404;
+                 }
+                 
+                 .print-instructions p {
+                     margin: 5px 0;
+                     color: #856404;
+                     font-size: 14px;
+                 }
+             </style>
+         </head>
+         <body>
+             <!-- 列印時隱藏的資訊面板 -->
+             <div class="info-panel no-print">
+                 <h3>列印資訊</h3>
+                 <p><strong>檢驗項目：</strong>${item}</p>
+                 <p><strong>批號：</strong>${lotNumber}</p>
+                 <p><strong>有效期限：</strong>${expirationDate}</p>
+                 <p><strong>入庫日期：</strong>${formattedInboundDate}</p>
+                 <p><strong>列印數量：</strong>${quantity} 張</p>
+                 <p><strong>列印方式：</strong>同版面列印 ${quantity} 次</p>
+             </div>
+             
+             <!-- 列印時隱藏的列印按鈕 -->
+             <button class="print-button no-print" onclick="printMultipleTimes(${quantity})">列印 ${quantity} 張標籤</button>
+             
+             <!-- 列印時隱藏的說明文字 -->
+             <div class="print-instructions no-print">
                  <h4>列印說明</h4>
                  <p><strong>標籤尺寸：</strong>3.5cm × 5cm (橫向)</p>
                  <p><strong>列印設定：</strong>請選擇「實際大小」或「100%」列印</p>
                  <p><strong>邊距設定：</strong>建議設定為「無邊距」或「最小邊距」</p>
+                 <p><strong>列印方式：</strong>同版面將列印 ${quantity} 次，每次列印 1 張標籤</p>
              </div>
-            
-            <div class="labels-container">
-                ${labelsHTML}
-            </div>
-        </body>
-        </html>
-    `;
-    
-    printWindow.document.write(labelContent);
-    printWindow.document.close();
-    
-    // 等待頁面載入完成後自動觸發列印
-    printWindow.onload = function() {
-        setTimeout(() => {
-            printWindow.print();
-        }, 500);
-    };
-}
+             
+             <div class="labels-container">
+                 ${singleLabelHTML}
+             </div>
+             
+             <script>
+                 // 多次列印函數
+                 function printMultipleTimes(times) {
+                     for (let i = 0; i < times; i++) {
+                         setTimeout(() => {
+                             window.print();
+                         }, i * 1000); // 每次列印間隔 1 秒
+                     }
+                 }
+             </script>
+         </body>
+         </html>
+     `;
+     
+     const printWindow = window.open('', '_blank', 'width=800,height=600');
+     printWindow.document.write(labelContent);
+     printWindow.document.close();
+     
+     // 等待頁面載入完成後自動觸發列印
+     printWindow.onload = function() {
+         setTimeout(() => {
+             printWindow.print();
+         }, 500);
+     };
+ }
  
  // 保留原有的單張標籤列印函數（向後兼容）
  function printLabel(item, lotNumber, expirationDate, inboundDate) {
