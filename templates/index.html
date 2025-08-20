@@ -1,823 +1,794 @@
-{% extends "base.html" %}
-
-{% block title %}新增批號 - 試劑批號確認系統{% endblock %}
-
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-10">
-        <!-- 歡迎標題 -->
-        <div class="text-center mb-3">
-            <div class="position-relative d-inline-block mb-2">
-                <h1 class="display-3 fw-bold text-white mb-2 text-gradient">
-                    
-            </h1>
-                <div class="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-10 rounded-pill blur-sm" style="filter: blur(20px); z-index: -1;"></div>
-            </div>
-            <p class="lead text-white-50 fs-4 mb-2">
-                
-            </p>
-
-        </div>
-
-        <div class="card glow">
-            <div class="card-header position-relative">
-                <div class="d-flex align-items-center">
-                    <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
-                        
-                    </div>
-                    <div>
-                        <h3 class="mb-1 text-white">
-                    新增試劑批號
-                </h3>
-                        <p class="mb-0 opacity-90">請填寫試劑資訊以新增到系統中</p>
-                    </div>
-                </div>
-                <div class="position-absolute top-0 end-0 p-3">
-                    <div class="bg-white bg-opacity-20 rounded-circle p-2">
-                        
-                    </div>
-                </div>
-            </div>
-            <div class="card-body p-5">
-                <form id="reagentForm">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                             <div class="form-group position-relative">
-                                <label for="item" class="form-label">
-                                     
-                                    檢驗項目名稱 <span class="text-danger">*</span>
-                                </label>
-                                 <div class="position-relative">
-                                <input type="text" class="form-control form-control-lg" id="item" name="item" 
-                                       placeholder="例如：葡萄糖、膽固醇、尿酸..." required>
-                                     <div class="position-absolute top-50 end-0 translate-middle-y me-3">
-                                         
-                                     </div>
-                                 </div>
-                                <div class="form-text">
-                                     
-                                    請輸入試劑所屬的檢驗項目名稱
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                             <div class="form-group position-relative">
-                                <label for="lot_number" class="form-label">
-                                     
-                                    批號 <span class="text-danger">*</span>
-                                </label>
-                                 <div class="position-relative">
-                                <input type="text" class="form-control form-control-lg" id="lot_number" name="lot_number" 
-                                       placeholder="例如：GLU-2024-001、CHO-2024-001..." required>
-                                     <div class="position-absolute top-50 end-0 translate-middle-y me-3">
-                                         
-                                     </div>
-                                 </div>
-                                <div class="form-text">
-                                     
-                                    請輸入試劑的批號（不可重複）
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row g-4 mt-2">
-                        <div class="col-md-6">
-                             <div class="form-group position-relative">
-                                <label for="expiration_date" class="form-label">
-                                     
-                                    有效期限 <span class="text-danger">*</span>
-                                </label>
-                                 <div class="position-relative">
-                                <input type="date" class="form-control form-control-lg" id="expiration_date" name="expiration_date" required>
-                                     <div class="position-absolute top-50 end-0 translate-middle-y me-3">
-                                         
-                                     </div>
-                                 </div>
-                                <div class="form-text">
-                                     
-                                    請選擇試劑的有效期限
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                             <div class="form-group position-relative">
-                                <label for="quantity" class="form-label">
-                                     
-                                    數量
-                                </label>
-                                 <div class="position-relative">
-                                <input type="number" class="form-control form-control-lg" id="quantity" name="quantity" 
-                                       value="1" min="1" step="1">
-                                     <div class="position-absolute top-50 end-0 translate-middle-y me-3">
-                                         
-                                     </div>
-                                 </div>
-                                <div class="form-text">
-                                     
-                                    請輸入試劑的數量（預設為1）
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                     <div class="row g-4 mt-2">
-                                                   <div class="col-md-6">
-                              <div class="form-group position-relative">
-                                  <label for="unit" class="form-label">
-                                      
-                                      單位
-                                  </label>
-                                  <div class="position-relative">
-                                      <select class="form-control form-control-lg" id="unit" name="unit">
-                                          <option value="">請選擇單位</option>
-                                          <option value="盒">盒</option>
-                                          <option value="瓶">瓶</option>
-                                          <option value="組">組</option>
-                                          <option value="其他">其他</option>
-                                      </select>
-                                      <div class="position-absolute top-50 end-0 translate-middle-y me-3">
-                                          
-                                      </div>
-                                  </div>
-                                  <div class="form-text">
-                                      
-                                      請選擇試劑的計量單位
-                                  </div>
-                              </div>
-                          </div>
-                         
-                                                   <div class="col-md-6">
-                              <div class="form-group position-relative">
-                                  <label for="supplier" class="form-label">
-                                      
-                                      供應商名稱
-                        </label>
-                                  <div class="position-relative">
-                                      <select class="form-control form-control-lg" id="supplier" name="supplier">
-                                          <option value="">請選擇供應商</option>
-                                          <option value="醫全">醫全</option>
-                                          <option value="亞培">亞培</option>
-                                          <option value="希森美康">希森美康</option>
-                                          <option value="沃芬">沃芬</option>
-                                          <option value="其他">其他</option>
-                                      </select>
-                                      <div class="position-absolute top-50 end-0 translate-middle-y me-3">
-                                          
-                                      </div>
-                                  </div>
-                        <div class="form-text">
-                                      
-                                      請選擇試劑的供應商名稱
-                                  </div>
-                              </div>
-                        </div>
-                    </div>
-                    
-                                         <div class="d-flex gap-3 flex-wrap mt-5 justify-content-center">
-                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
-                             
-                            儲存批號
-                        </button>
-                        <button type="button" class="btn btn-outline-info btn-lg" id="clearBtn">
-                             
-                            清空表單
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
-        
-        
-        
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// 確保函數在頁面載入前就定義好
-function isExpired(dateString) {
-    if (!dateString) return false;
-    const expDate = new Date(dateString);
-    const today = new Date();
-    return expDate < today;
-}
-
-function formatDate(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('zh-TW');
-}
-
-function formatDateTime(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleString('zh-TW');
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('頁面載入完成，開始初始化...');
-    
-    // 設定預設日期（一年後）
-    const today = new Date();
-    const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-    document.getElementById('expiration_date').value = nextYear.toISOString().split('T')[0];
-    
-    
-    
-    // 表單提交處理
-    document.getElementById('reagentForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        submitForm();
-    });
-    
-    // 清空表單按鈕
-    document.getElementById('clearBtn').addEventListener('click', function() {
-        if (confirm('確定要清空所有欄位嗎？')) {
-            document.getElementById('reagentForm').reset();
-            // 重新設定預設日期
-            const today = new Date();
-            const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-            document.getElementById('expiration_date').value = nextYear.toISOString().split('T')[0];
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>試劑入庫管理系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Microsoft JhengHei', sans-serif;
         }
-    });
-    
-    // 輸入框焦點效果
-    const inputs = document.querySelectorAll('.form-control');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            this.parentElement.classList.add('focused');
-            this.parentElement.parentElement.classList.add('glow');
-        });
-        
-        input.addEventListener('blur', function() {
-            this.parentElement.classList.remove('focused');
-            this.parentElement.parentElement.classList.remove('glow');
-        });
-    });
-    
-         // 添加輸入驗證提示
-     const itemInput = document.getElementById('item');
-     const lotInput = document.getElementById('lot_number');
-     
-     itemInput.addEventListener('input', function() {
-         if (this.value.length > 0) {
-             this.style.borderColor = '#059669';
-             this.style.boxShadow = '0 0 0 4px rgba(5, 150, 105, 0.1)';
-         } else {
-             this.style.borderColor = '';
-             this.style.boxShadow = '';
-         }
-     });
-     
-     lotInput.addEventListener('input', function() {
-         if (this.value.length > 0) {
-             this.style.borderColor = '#7c3aed';
-             this.style.boxShadow = '0 0 0 4px rgba(124, 58, 237, 0.1)';
-         } else {
-             this.style.borderColor = '';
-             this.style.boxShadow = '';
-         }
-     });
-     
-     // 處理單位和供應商的下拉選單
-     const unitSelect = document.getElementById('unit');
-     const supplierSelect = document.getElementById('supplier');
-     
-     // 單位選單處理
-     unitSelect.addEventListener('change', function() {
-         if (this.value === '其他') {
-             const customUnit = prompt('請輸入自訂單位：');
-             if (customUnit && customUnit.trim()) {
-                 // 創建新的選項並設為選中
-                 const newOption = document.createElement('option');
-                 newOption.value = customUnit.trim();
-                 newOption.text = customUnit.trim();
-                 this.add(newOption);
-                 this.value = customUnit.trim();
-             } else {
-                 this.value = ''; // 如果沒有輸入，回到預設狀態
-             }
-         }
-     });
-     
-     // 供應商選單處理
-     supplierSelect.addEventListener('change', function() {
-         if (this.value === '其他') {
-             const customSupplier = prompt('請輸入自訂供應商：');
-             if (customSupplier && customSupplier.trim()) {
-                 // 創建新的選項並設為選中
-                 const newOption = document.createElement('option');
-                 newOption.value = customSupplier.trim();
-                 newOption.text = customSupplier.trim();
-                 this.add(newOption);
-                 this.value = customSupplier.trim();
-             } else {
-                 this.value = ''; // 如果沒有輸入，回到預設狀態
-             }
-         }
-     });
-    
-    
-});
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin: 20px;
+            padding: 30px;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 600;
+        }
+        .btn-success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            border: none;
+            border-radius: 25px;
+            padding: 8px 20px;
+        }
+        .btn-warning {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            border: none;
+            border-radius: 25px;
+            padding: 8px 20px;
+        }
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .table {
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .table th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+        .alert {
+            border-radius: 15px;
+            border: none;
+        }
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+        }
+        .search-box {
+            position: relative;
+        }
+        .search-box .form-control {
+            padding-right: 50px;
+        }
+        .search-box .btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+        }
+        .batch-new {
+            background: linear-gradient(45deg, #ff9a9e, #fecfef);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .batch-old {
+            background: linear-gradient(45deg, #a8edea, #fed6e3);
+            color: #333;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .nav-tabs {
+            border: none;
+            margin-bottom: 30px;
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            border-radius: 15px 15px 0 0;
+            margin-right: 10px;
+            padding: 15px 30px;
+            font-weight: 600;
+            color: #6c757d;
+            background: rgba(108, 117, 125, 0.1);
+            transition: all 0.3s ease;
+        }
+        .nav-tabs .nav-link:hover {
+            background: rgba(108, 117, 125, 0.2);
+            color: #495057;
+        }
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .tab-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
 
-function submitForm() {
-    const form = document.getElementById('reagentForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const originalText = submitBtn.innerHTML;
-    
-    // 獲取表單資料
-    const formData = {
-        item: document.getElementById('item').value.trim(),
-        lot_number: document.getElementById('lot_number').value.trim(),
-        expiration_date: document.getElementById('expiration_date').value,
-        quantity: document.getElementById('quantity').value || 1,
-         unit: document.getElementById('unit').value.trim(),
-         supplier: document.getElementById('supplier').value.trim()
-    };
-    
-    // 驗證資料
-    if (!formData.item) {
-                 showAlert(`
-             <div class="d-flex align-items-center">
-                 
-                 <div>
-                     <strong>請輸入檢驗項目名稱</strong><br>
-                     <small>此欄位為必填項目</small>
-                 </div>
-             </div>
-         `, 'warning');
-        document.getElementById('item').focus();
-        return;
-    }
-    
-    if (!formData.lot_number) {
-                 showAlert(`
-             <div class="d-flex align-items-center">
-                 
-                 <div>
-                     <strong>請輸入批號</strong><br>
-                     <small>此欄位為必填項目</small>
-                 </div>
-             </div>
-         `, 'warning');
-        document.getElementById('lot_number').focus();
-        return;
-    }
-    
-    if (!formData.expiration_date) {
-                 showAlert(`
-             <div class="d-flex align-items-center">
-                 
-                 <div>
-                     <strong>請選擇有效期限</strong><br>
-                     <small>此欄位為必填項目</small>
-                 </div>
-             </div>
-         `, 'warning');
-        document.getElementById('expiration_date').focus();
-        return;
-    }
-    
-    // 顯示載入狀態
-    submitBtn.disabled = true;
-         submitBtn.innerHTML = '儲存中...';
-    
-    // 發送 API 請求
-    fetch('/api/save_reagent', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => response.json())
-         .then(data => {
-         if (data.success) {
-             // 檢查是否為新批號（根據後端回傳的訊息判斷）
-             if (data.message && data.message.includes('數量已更新')) {
-                 // 舊批號：直接列印標籤，不顯示成功視窗
-                 printMultipleLabels(formData.item, formData.lot_number, formData.expiration_date, new Date().toISOString().split('T')[0], formData.quantity);
-             } else {
-                 // 新批號：顯示確認視窗，使用者確認後才列印標籤
-                 showConfirmAlert(`
-                     <div class="d-flex align-items-center">
-                         <div>
-                             <strong>新批號試劑入庫成功！</strong><br>
-                             <small>${data.message}</small>
-                         </div>
-                     </div>
-                     <div class="mt-3">
-                         <button type="button" class="btn btn-success btn-sm" onclick="printMultipleLabels('${formData.item}', '${formData.lot_number}', '${formData.expiration_date}', '${new Date().toISOString().split('T')[0]}', ${formData.quantity})">
-                             <i class="bi bi-printer me-1"></i>重新列印 ${formData.quantity} 張標籤
-                         </button>
-                     </div>
-                 `, 'success', () => {
-                     // 使用者按確定後才自動列印標籤
-                     printMultipleLabels(formData.item, formData.lot_number, formData.expiration_date, new Date().toISOString().split('T')[0], formData.quantity);
-                 });
-             }
-             
-             form.reset();
-             // 重新設定預設日期
-             const today = new Date();
-             const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-             document.getElementById('expiration_date').value = nextYear.toISOString().split('T')[0];
-             
-        } else {
-            if (data.details) {
-                // 批號已存在，顯示詳細資訊
-                showAlert(`
-                    <div class="d-flex align-items-center">
-                         
-                        <div>
-                            <strong>批號已存在</strong><br>
-                            <small>項目：${data.details.item}<br>儲存時間：${formatDateTime(data.details.stored_date)}</small>
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold text-primary mb-3">
+                    <i class="fas fa-flask me-3"></i>試劑入庫管理系統
+                </h1>
+                <p class="lead text-muted">專業的試劑庫存管理解決方案</p>
+            </div>
+
+            <!-- 頁籤導航 -->
+            <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="entry-tab" data-bs-toggle="tab" data-bs-target="#entry" type="button" role="tab">
+                        <i class="fas fa-plus-circle me-2"></i>新增入庫
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="search-records-tab" data-bs-toggle="tab" data-bs-target="#search-records" type="button" role="tab">
+                        <i class="fas fa-search me-2"></i>搜尋與紀錄
+                    </button>
+                </li>
+            </ul>
+
+            <!-- 頁籤內容 -->
+            <div class="tab-content" id="mainTabsContent">
+                <!-- 新增入庫頁籤 -->
+                <div class="tab-pane fade show active" id="entry" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>新增入庫資料</h5>
+                        </div>
+                        <div class="card-body">
+                                                         <form id="entryForm">
+                                 <div class="row">
+                                     <div class="col-md-6 mb-3">
+                                         <label for="reagentName" class="form-label fw-bold">試劑名稱 *</label>
+                                         <input type="text" class="form-control" id="reagentName" required>
+                                     </div>
+                                     <div class="col-md-6 mb-3">
+                                         <label for="reagentBatchNumber" class="form-label fw-bold">試劑批號 *</label>
+                                         <input type="text" class="form-control" id="reagentBatchNumber" required>
+                                     </div>
+                                 </div>
+                                 <div class="row">
+                                     <div class="col-md-6 mb-3">
+                                         <label for="expiryDate" class="form-label fw-bold">穩定效期 *</label>
+                                         <input type="date" class="form-control" id="expiryDate" required>
+                                     </div>
+                                     <div class="col-md-6 mb-3">
+                                         <label for="quantity" class="form-label fw-bold">入庫數量 *</label>
+                                         <input type="number" class="form-control" id="quantity" min="1" required>
+                                     </div>
+                                 </div>
+                                 <div class="row">
+                                     <div class="col-md-6 mb-3">
+                                         <label for="unit" class="form-label fw-bold">單位 *</label>
+                                         <select class="form-control" id="unit" required onchange="handleUnitChange()">
+                                             <option value="">請選擇單位</option>
+                                             <option value="箱">箱</option>
+                                             <option value="盒">盒</option>
+                                             <option value="瓶">瓶</option>
+                                             <option value="組">組</option>
+                                             <option value="其他">其他</option>
+                                         </select>
+                                         <input type="text" class="form-control mt-2" id="unitOther" placeholder="請輸入其他單位" style="display: none;">
+                                     </div>
+                                     <div class="col-md-6 mb-3">
+                                         <label for="supplier" class="form-label fw-bold">供應商 *</label>
+                                         <select class="form-control" id="supplier" required onchange="handleSupplierChange()">
+                                             <option value="">請選擇供應商</option>
+                                             <option value="醫全">醫全</option>
+                                             <option value="亞培">亞培</option>
+                                             <option value="希森美康">希森美康</option>
+                                             <option value="沃芬">沃芬</option>
+                                             <option value="其他">其他</option>
+                                         </select>
+                                         <input type="text" class="form-control mt-2" id="supplierOther" placeholder="請輸入其他供應商" style="display: none;">
+                                     </div>
+                                 </div>
+
+                                <div class="text-center">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save me-2"></i>儲存並列印標籤
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                `, 'info');
-            } else {
-                showAlert(`
-                    <div class="d-flex align-items-center">
-                         
-                        <div>
-                            <strong>儲存失敗</strong><br>
-                            <small>${data.message}</small>
+                </div>
+
+                <!-- 搜尋與紀錄整合頁籤 -->
+                <div class="tab-pane fade" id="search-records" role="tabpanel">
+                    <!-- 篩選器區域 -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>篩選搜尋</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="filterName" class="form-label fw-bold">試劑名稱</label>
+                                    <input type="text" class="form-control" id="filterName" placeholder="輸入試劑名稱">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="filterSupplier" class="form-label fw-bold">供應商</label>
+                                    <select class="form-control" id="filterSupplier">
+                                        <option value="">全部供應商</option>
+                                        <option value="醫全">醫全</option>
+                                        <option value="亞培">亞培</option>
+                                        <option value="希森美康">希森美康</option>
+                                        <option value="沃芬">沃芬</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="filterDateFrom" class="form-label fw-bold">開始日期</label>
+                                    <input type="date" class="form-control" id="filterDateFrom">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="filterDateTo" class="form-label fw-bold">結束日期</label>
+                                    <input type="date" class="form-control" id="filterDateTo">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="searchInput" class="form-label fw-bold">關鍵字搜尋</label>
+                                    <div class="search-box">
+                                        <input type="text" class="form-control" id="searchInput" placeholder="搜尋試劑名稱、批號...">
+                                        <button class="btn btn-success" onclick="searchEntries()">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3 d-flex align-items-end">
+                                    <button class="btn btn-primary me-2" onclick="applyFilters()">
+                                        <i class="fas fa-filter me-2"></i>套用篩選
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="clearFilters()">
+                                        <i class="fas fa-times me-2"></i>清除篩選
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                `, 'danger');
+
+                    <!-- 資料顯示區域 -->
+                    <div class="card">
+                        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-list me-2"></i>入庫紀錄</h5>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-light text-dark me-3" id="recordCount">共 0 筆記錄</span>
+                                <button class="btn btn-outline-light btn-sm" onclick="exportToCSV()">
+                                    <i class="fas fa-download me-1"></i>匯出
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>試劑名稱</th>
+                                            <th>試劑批號</th>
+                                            <th>穩定效期</th>
+                                            <th>數量</th>
+                                            <th>單位</th>
+                                            <th>供應商</th>
+                                            <th>入庫日期</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="entriesTableBody">
+                                        <!-- 資料將由JavaScript動態載入 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 補印標籤模態框 -->
+    <div class="modal fade" id="reprintModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">補印標籤</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="reprintQuantity" class="form-label">列印數量</label>
+                        <input type="number" class="form-control" id="reprintQuantity" min="1" value="1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmReprint()">確認列印</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成功提示模態框 -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">操作成功</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="successMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">確定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新批號確認模態框 -->
+    <div class="modal fade" id="newBatchModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>新批號確認
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">檢測到新批號！</h6>
+                        <p id="newBatchMessage" class="mb-0"></p>
+                    </div>
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">入庫資料預覽</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>試劑名稱:</strong> <span id="previewReagentName"></span></p>
+                                    <p><strong>試劑批號:</strong> <span id="previewBatchNumber"></span></p>
+                                    <p><strong>穩定效期:</strong> <span id="previewExpiryDate"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>入庫數量:</strong> <span id="previewQuantity"></span></p>
+                                    <p><strong>單位:</strong> <span id="previewUnit"></span></p>
+                                    <p><strong>供應商:</strong> <span id="previewSupplier"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-warning" onclick="confirmNewBatchEntry()">
+                        <i class="fas fa-check me-2"></i>確認入庫
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentEntryId = null;
+        let allEntries = [];
+
+        // 頁面載入時獲取所有記錄
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEntries();
+        });
+
+        // 頁籤切換時重新載入資料
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function(e) {
+                if (e.target.id === 'search-records-tab') {
+                    loadEntries();
+                }
+            });
+        });
+
+        // 載入入庫記錄
+        async function loadEntries() {
+            try {
+                const response = await fetch('/api/entries');
+                allEntries = await response.json();
+                displayEntries(allEntries);
+            } catch (error) {
+                console.error('載入記錄失敗:', error);
             }
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert(`
-            <div class="d-flex align-items-center">
-                 
-                <div>
-                    <strong>系統錯誤</strong><br>
-                    <small>儲存失敗，請稍後再試</small>
-                </div>
-            </div>
-        `, 'danger');
-    })
-    .finally(() => {
-        // 恢復按鈕狀態
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-    });
-}
 
-  // 列印多張試劑標籤（根據入庫數量）
- function printMultipleLabels(item, lotNumber, expirationDate, inboundDate, quantity) {
-     // 格式化入庫日期，只保留年月日
-     const formatDateOnly = (dateString) => {
-         if (!dateString) return '';
-         const date = new Date(dateString);
-         return date.toISOString().split('T')[0]; // 只取 YYYY-MM-DD 部分
-     };
-     
-     const formattedInboundDate = formatDateOnly(inboundDate);
-     
-     // 生成單張標籤的HTML內容
-     const singleLabelHTML = `
-         <div class="label">
-             <div class="label-header">【入庫資料】</div>
-             <div class="label-content">
-                 <div class="info-row">
-                     <span class="info-label">名稱：</span>
-                     <span class="info-value">${item}</span>
-                     <span class="info-label-right">批號：</span>
-                     <span class="info-value-right">${lotNumber}</span>
-                 </div>
-                 <div class="info-row">
-                     <span class="info-label">有效日期：</span>
-                     <span class="info-value">${expirationDate}</span>
-                 </div>
-                 <div class="info-row">
-                     <span class="info-label">入庫日期：</span>
-                     <span class="info-value">${formattedInboundDate}</span>
-                 </div>
-             </div>
-             
-             <div class="label-divider"></div>
-             
-             <div class="label-header">【出庫資料】</div>
-             <div class="label-content">
-                 <div class="info-row outbound">
-                     <span class="info-label">出庫人員：</span>
-                     <span class="info-value">
-                         <div class="blank-line"></div>
-                     </span>
-                     <span class="info-label-right">出庫日期：</span>
-                     <span class="info-value-right">
-                         <div class="blank-line"></div>
-                     </span>
-                 </div>
-             </div>
-         </div>
-     `;
-     
-     const labelContent = `
-         <!DOCTYPE html>
-         <html>
-         <head>
-             <meta charset="UTF-8">
-             <title>試劑標籤 - ${quantity}張</title>
-             <style>
-                 @media print {
-                     body { 
-                         margin: 0; 
-                         padding: 0;
-                     }
-                     .label { 
-                         page-break-inside: avoid; 
-                         break-inside: avoid;
-                     }
-                     .no-print {
-                         display: none !important;
-                     }
-                 }
-                 
-                 body {
-                     margin: 0;
-                     padding: 0;
-                     font-family: "Microsoft JhengHei", Arial, sans-serif;
-                     background: white;
-                 }
-                 
-                 .labels-container {
-                     display: flex;
-                     flex-direction: column;
-                     gap: 5mm;
-                     padding: 5mm;
-                     justify-content: flex-start;
-                     align-items: center;
-                 }
-                 
-                 .label {
-                     width: 50mm;
-                     height: 35mm;
-                     border: 0.5mm solid #000;
-                     box-sizing: border-box;
-                     display: block;
-                     margin: 0;
-                     background: white;
-                     position: relative;
-                     overflow: hidden;
-                 }
-                 
-                 .label-header {
-                     background: #f0f0f0;
-                     text-align: center;
-                     font-size: 6pt;
-                     font-weight: bold;
-                     padding: 0.6mm 0;
-                     border-bottom: 0.3mm solid #000;
-                     height: 3mm;
-                     line-height: 1.8mm;
-                 }
-                 
-                 .label-content {
-                     padding: 0.6mm;
-                 }
-                 
-                 .info-row {
-                     display: flex;
-                     justify-content: flex-start;
-                     align-items: center;
-                     margin-bottom: 1.2mm;
-                     height: 2.8mm;
-                     gap: 1mm;
-                 }
-                 
-                 .info-row.outbound {
-                     margin-top: 0.8mm;
-                     margin-bottom: 1.2mm;
-                 }
-                 
-                 .info-label {
-                     font-size: 5pt;
-                     font-weight: bold;
-                     min-width: 8mm;
-                     text-align: left;
-                     flex-shrink: 0;
-                 }
-                 
-                 .info-value {
-                     font-size: 5pt;
-                     min-width: 10mm;
-                     text-align: left;
-                     flex-shrink: 0;
-                 }
-                 
-                 .info-label-right {
-                     font-size: 5pt;
-                     font-weight: bold;
-                     min-width: 8mm;
-                     text-align: left;
-                     margin-left: 2mm;
-                     flex-shrink: 0;
-                 }
-                 
-                 .info-value-right {
-                     font-size: 5pt;
-                     min-width: 10mm;
-                     text-align: left;
-                     flex-shrink: 0;
-                 }
-                 
-                 .blank-line {
-                     border-bottom: 0.3mm solid #000;
-                     height: 2mm;
-                     width: 100%;
-                 }
-                 
-                 .label-divider {
-                     border-top: 0.3mm solid #000;
-                     margin: 0.6mm 0;
-                     height: 0.3mm;
-                 }
-                 
-                 .print-button {
-                     position: fixed;
-                     top: 20px;
-                     right: 20px;
-                     z-index: 1000;
-                     padding: 10px 20px;
-                     background: #007bff;
-                     color: white;
-                     border: none;
-                     border-radius: 5px;
-                     cursor: pointer;
-                     font-size: 14px;
-                 }
-                 
-                 .print-button:hover {
-                     background: #0056b3;
-                 }
-                 
-                 .info-panel {
-                     position: fixed;
-                     top: 20px;
-                     left: 20px;
-                     background: #f8f9fa;
-                     padding: 15px;
-                     border-radius: 5px;
-                     border: 1px solid #dee2e6;
-                     font-size: 14px;
-                     max-width: 300px;
-                     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                 }
-                 
-                 .info-panel h3 {
-                     margin: 0 0 10px 0;
-                     color: #495057;
-                 }
-                 
-                 .info-panel p {
-                     margin: 5px 0;
-                     color: #6c757d;
-                 }
-                 
-                 .print-instructions {
-                     position: fixed;
-                     bottom: 20px;
-                     left: 50%;
-                     transform: translateX(-50%);
-                     background: #fff3cd;
-                     border: 1px solid #ffeaa7;
-                     padding: 15px;
-                     border-radius: 5px;
-                     text-align: center;
-                     max-width: 500px;
-                     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                 }
-                 
-                 .print-instructions h4 {
-                     margin: 0 0 10px 0;
-                     color: #856404;
-                 }
-                 
-                 .print-instructions p {
-                     margin: 5px 0;
-                     color: #856404;
-                     font-size: 14px;
-                 }
-             </style>
-         </head>
-         <body>
-             <!-- 列印時隱藏的資訊面板 -->
-             <div class="info-panel no-print">
-                 <h3>列印資訊</h3>
-                 <p><strong>檢驗項目：</strong>${item}</p>
-                 <p><strong>批號：</strong>${lotNumber}</p>
-                 <p><strong>有效期限：</strong>${expirationDate}</p>
-                 <p><strong>入庫日期：</strong>${formattedInboundDate}</p>
-                 <p><strong>列印數量：</strong>${quantity} 張</p>
-                 <p><strong>列印方式：</strong>同版面列印 ${quantity} 次</p>
-             </div>
-             
-             <!-- 列印時隱藏的列印按鈕 -->
-             <button class="print-button no-print" onclick="printMultipleTimes(${quantity})">列印 ${quantity} 張標籤</button>
-             
-             <!-- 列印時隱藏的說明文字 -->
-             <div class="print-instructions no-print">
-                 <h4>列印說明</h4>
-                 <p><strong>標籤尺寸：</strong>3.5cm × 5cm (橫向)</p>
-                 <p><strong>列印設定：</strong>請選擇「實際大小」或「100%」列印</p>
-                 <p><strong>邊距設定：</strong>建議設定為「無邊距」或「最小邊距」</p>
-                 <p><strong>列印方式：</strong>同版面將列印 ${quantity} 次，每次列印 1 張標籤</p>
-             </div>
-             
-             <div class="labels-container">
-                 ${singleLabelHTML}
-             </div>
-             
-             <script>
-                 // 多次列印函數
-                 function printMultipleTimes(times) {
-                     for (let i = 0; i < times; i++) {
-                         setTimeout(() => {
-                             window.print();
-                         }, i * 1000); // 每次列印間隔 1 秒
-                     }
-                 }
-             </script>
-         </body>
-         </html>
-     `;
-     
-     const printWindow = window.open('', '_blank', 'width=800,height=600');
-     printWindow.document.write(labelContent);
-     printWindow.document.close();
-     
-     // 等待頁面載入完成後自動觸發列印
-     printWindow.onload = function() {
-         setTimeout(() => {
-             printWindow.print();
-         }, 500);
-     };
- }
- 
- // 保留原有的單張標籤列印函數（向後兼容）
- function printLabel(item, lotNumber, expirationDate, inboundDate) {
-     printMultipleLabels(item, lotNumber, expirationDate, inboundDate, 1);
- }
- 
- // 需要使用者確認的提醒對話框
- function showConfirmAlert(message, type, onConfirm) {
-     const alertDiv = document.createElement('div');
-     alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-     alertDiv.style.cssText = `
-         top: 20px;
-         left: 50%;
-         transform: translateX(-50%);
-         z-index: 9999;
-         min-width: 400px;
-         max-width: 600px;
-         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-     `;
-     
-     alertDiv.innerHTML = `
-         ${message}
-         <div class="mt-3 text-center">
-             <button type="button" class="btn btn-primary btn-sm" onclick="confirmAndClose(this, ${onConfirm ? 'true' : 'false'})">
-                 確定
-             </button>
-                        </div>
-         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-     `;
-     
-     document.body.appendChild(alertDiv);
-     
-     // 儲存回調函數
-     alertDiv.dataset.onConfirm = onConfirm ? 'true' : 'false';
-     alertDiv.dataset.callback = onConfirm ? onConfirm.toString() : '';
- }
- 
- // 確認並關閉對話框
- function confirmAndClose(button, hasCallback) {
-     const alertDiv = button.closest('.alert');
-     if (hasCallback && alertDiv.dataset.callback) {
-         try {
-             // 執行回調函數
-             const callback = new Function('return ' + alertDiv.dataset.callback)();
-             if (typeof callback === 'function') {
-                 callback();
+                 // 顯示入庫記錄
+         function displayEntries(entries) {
+             const tbody = document.getElementById('entriesTableBody');
+             tbody.innerHTML = '';
+
+             // 更新記錄數量
+             document.getElementById('recordCount').textContent = `共 ${entries.length} 筆記錄`;
+
+             if (entries.length === 0) {
+                 tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">沒有找到符合條件的記錄</td></tr>';
+                 return;
              }
-         } catch (e) {
-             console.error('執行回調函數時發生錯誤:', e);
-         }
-     }
-     alertDiv.remove();
- }
- 
 
- 
-</script>
-{% endblock %}
+             entries.forEach(entry => {
+                 const row = document.createElement('tr');
+
+                 row.innerHTML = `
+                     <td>${entry.reagent_name}</td>
+                     <td><strong>${entry.reagent_batch_number}</strong></td>
+                     <td>${entry.expiry_date}</td>
+                     <td><span class="badge bg-primary">${entry.quantity}</span></td>
+                     <td>${entry.unit}</td>
+                     <td>${entry.supplier}</td>
+                     <td>${entry.entry_date}</td>
+                     <td>
+                         <button class="btn btn-warning btn-sm" onclick="showReprintModal(${entry.id})">
+                             <i class="fas fa-print me-1"></i>補印
+                         </button>
+                     </td>
+                 `;
+                 tbody.appendChild(row);
+             });
+         }
+
+        // 搜尋功能
+        function searchEntries() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                // 如果沒有關鍵字，顯示所有記錄
+                displayEntries(allEntries);
+                return;
+            }
+
+            // 在現有記錄中搜尋
+            const searchResults = allEntries.filter(entry => 
+                entry.reagent_name.toLowerCase().includes(query.toLowerCase()) ||
+                entry.reagent_batch_number.toLowerCase().includes(query.toLowerCase()) ||
+                entry.supplier.toLowerCase().includes(query.toLowerCase())
+            );
+
+            displayEntries(searchResults);
+        }
+
+
+
+        // 顯示補印模態框
+        function showReprintModal(entryId) {
+            currentEntryId = entryId;
+            const modal = new bootstrap.Modal(document.getElementById('reprintModal'));
+            modal.show();
+        }
+
+        // 確認補印
+        async function confirmReprint() {
+            const quantity = document.getElementById('reprintQuantity').value;
+            
+            try {
+                const response = await fetch(`/api/print-labels/${currentEntryId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ quantity: parseInt(quantity) })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showSuccessModal(result.message);
+                    bootstrap.Modal.getInstance(document.getElementById('reprintModal')).hide();
+                }
+            } catch (error) {
+                console.error('補印失敗:', error);
+            }
+        }
+
+        // 顯示成功提示
+        function showSuccessModal(message) {
+            document.getElementById('successMessage').textContent = message;
+            const modal = new bootstrap.Modal(document.getElementById('successModal'));
+            modal.show();
+        }
+
+         // 表單提交處理
+         document.getElementById('entryForm').addEventListener('submit', async function(e) {
+             e.preventDefault();
+
+             // 驗證表單
+             if (!validateForm()) {
+                 return;
+             }
+
+             const formData = {
+                 reagent_name: document.getElementById('reagentName').value,
+                 reagent_batch_number: document.getElementById('reagentBatchNumber').value,
+                 expiry_date: document.getElementById('expiryDate').value,
+                 quantity: parseInt(document.getElementById('quantity').value),
+                 unit: document.getElementById('unit').value === '其他' ? document.getElementById('unitOther').value : document.getElementById('unit').value,
+                 supplier: document.getElementById('supplier').value === '其他' ? document.getElementById('supplierOther').value : document.getElementById('supplier').value
+             };
+
+             try {
+                 const response = await fetch('/api/entries', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify(formData)
+                 });
+
+                 const result = await response.json();
+                 
+                 if (result.success) {
+                     // 一般入庫成功
+                     showSuccessModal(result.message);
+                     
+                     // 清空表單
+                     document.getElementById('entryForm').reset();
+                     
+                     // 重新載入記錄
+                     loadEntries();
+                 } else if (result.is_new_batch) {
+                     // 檢測到新批號，顯示確認模態框
+                     showNewBatchModal(result.message, result.data);
+                 } else {
+                     // 其他錯誤
+                     alert('操作失敗：' + (result.message || '未知錯誤'));
+                 }
+             } catch (error) {
+                 console.error('儲存失敗:', error);
+                 alert('儲存失敗，請重試');
+             }
+         });
+
+         // 顯示新批號確認模態框
+         function showNewBatchModal(message, data) {
+             // 設置模態框內容
+             document.getElementById('newBatchMessage').textContent = message;
+             document.getElementById('previewReagentName').textContent = data.reagent_name;
+             document.getElementById('previewBatchNumber').textContent = data.reagent_batch_number;
+             document.getElementById('previewExpiryDate').textContent = data.expiry_date;
+             document.getElementById('previewQuantity').textContent = data.quantity;
+             document.getElementById('previewUnit').textContent = data.unit;
+             document.getElementById('previewSupplier').textContent = data.supplier;
+             
+             // 儲存資料供確認時使用
+             window.pendingEntryData = data;
+             
+             // 顯示模態框
+             const modal = new bootstrap.Modal(document.getElementById('newBatchModal'));
+             modal.show();
+         }
+
+         // 確認新批號入庫
+         async function confirmNewBatchEntry() {
+             if (!window.pendingEntryData) {
+                 alert('沒有待確認的入庫資料');
+                 return;
+             }
+
+             try {
+                 const response = await fetch('/api/confirm-entry', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify(window.pendingEntryData)
+                 });
+
+                 const result = await response.json();
+                 
+                 if (result.success) {
+                     // 入庫成功
+                     showSuccessModal(result.message);
+                     
+                     // 清空表單
+                     document.getElementById('entryForm').reset();
+                     
+                     // 重新載入記錄
+                     loadEntries();
+                     
+                     // 關閉新批號確認模態框
+                     bootstrap.Modal.getInstance(document.getElementById('newBatchModal')).hide();
+                     
+                     // 清除待確認資料
+                     window.pendingEntryData = null;
+                 } else {
+                     alert('確認入庫失敗：' + (result.message || '未知錯誤'));
+                 }
+             } catch (error) {
+                 console.error('確認入庫失敗:', error);
+                 alert('確認入庫失敗，請重試');
+             }
+         }
+
+         // 搜尋框按Enter鍵觸發搜尋
+         document.getElementById('searchInput').addEventListener('keypress', function(e) {
+             if (e.key === 'Enter') {
+                 searchEntries();
+             }
+         });
+
+         // 處理單位選擇變更
+         function handleUnitChange() {
+             const unitSelect = document.getElementById('unit');
+             const unitOther = document.getElementById('unitOther');
+             
+             if (unitSelect.value === '其他') {
+                 unitOther.style.display = 'block';
+                 unitOther.required = true;
+                 unitOther.focus();
+             } else {
+                 unitOther.style.display = 'none';
+                 unitOther.required = false;
+                 unitOther.value = '';
+             }
+         }
+
+         // 處理供應商選擇變更
+         function handleSupplierChange() {
+             const supplierSelect = document.getElementById('supplier');
+             const supplierOther = document.getElementById('supplierOther');
+             
+             if (supplierSelect.value === '其他') {
+                 supplierOther.style.display = 'block';
+                 supplierOther.required = true;
+                 supplierOther.focus();
+             } else {
+                 supplierOther.style.display = 'none';
+                 supplierOther.required = false;
+                 supplierOther.value = '';
+             }
+         }
+
+         // 表單驗證
+         function validateForm() {
+             const unitSelect = document.getElementById('unit');
+             const unitOther = document.getElementById('unitOther');
+             const supplierSelect = document.getElementById('supplier');
+             const supplierOther = document.getElementById('supplierOther');
+
+             // 驗證單位
+             if (unitSelect.value === '其他' && !unitOther.value.trim()) {
+                 alert('請輸入其他單位');
+                 unitOther.focus();
+                 return false;
+             }
+
+             // 驗證供應商
+             if (supplierSelect.value === '其他' && !supplierOther.value.trim()) {
+                 alert('請輸入其他供應商');
+                 supplierOther.focus();
+                 return false;
+             }
+
+             return true;
+         }
+
+         // 套用篩選器
+         function applyFilters() {
+             const filterName = document.getElementById('filterName').value.trim();
+             const filterSupplier = document.getElementById('filterSupplier').value;
+             const filterDateFrom = document.getElementById('filterDateFrom').value;
+             const filterDateTo = document.getElementById('filterDateTo').value;
+
+             let filteredEntries = allEntries.filter(entry => {
+                 // 名稱篩選
+                 if (filterName && !entry.reagent_name.toLowerCase().includes(filterName.toLowerCase())) {
+                     return false;
+                 }
+
+                 // 供應商篩選
+                 if (filterSupplier && entry.supplier !== filterSupplier) {
+                     return false;
+                 }
+
+                 // 日期範圍篩選
+                 if (filterDateFrom || filterDateTo) {
+                     const entryDate = new Date(entry.entry_date.split(' ')[0]); // 只取日期部分
+                     
+                     if (filterDateFrom && entryDate < new Date(filterDateFrom)) {
+                         return false;
+                     }
+                     
+                     if (filterDateTo && entryDate > new Date(filterDateTo)) {
+                         return false;
+                     }
+                 }
+
+                 return true;
+             });
+
+             displayEntries(filteredEntries);
+         }
+
+         // 清除篩選器
+         function clearFilters() {
+             document.getElementById('filterName').value = '';
+             document.getElementById('filterSupplier').value = '';
+             document.getElementById('filterDateFrom').value = '';
+             document.getElementById('filterDateTo').value = '';
+             document.getElementById('searchInput').value = '';
+             
+             // 重新顯示所有記錄
+             displayEntries(allEntries);
+         }
+
+         // 匯出CSV功能
+         function exportToCSV() {
+             const currentEntries = allEntries;
+             if (currentEntries.length === 0) {
+                 alert('沒有資料可以匯出');
+                 return;
+             }
+
+             // CSV標題
+             const headers = ['試劑名稱', '試劑批號', '穩定效期', '數量', '單位', '供應商', '入庫日期'];
+             
+             // CSV內容
+             const csvContent = [
+                 headers.join(','),
+                 ...currentEntries.map(entry => [
+                     entry.reagent_name,
+                     entry.reagent_batch_number,
+                     entry.expiry_date,
+                     entry.quantity,
+                     entry.unit,
+                     entry.supplier,
+                     entry.entry_date
+                 ].join(','))
+             ].join('\n');
+
+             // 創建下載連結
+             const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+             const link = document.createElement('a');
+             const url = URL.createObjectURL(blob);
+             link.setAttribute('href', url);
+             link.setAttribute('download', `試劑入庫紀錄_${new Date().toISOString().split('T')[0]}.csv`);
+             link.style.visibility = 'hidden';
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+         }
+    </script>
+</body>
+</html>

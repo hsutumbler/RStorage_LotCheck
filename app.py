@@ -1,277 +1,175 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-試劑批號確認系統 - Flask 後端
-檢驗科專用，用於確認試劑批號是否使用過
-"""
-
-from flask import Flask, render_template, request, jsonify, redirect, url_for
-import sqlite3
-import datetime
+from flask import Flask, render_template, request, jsonify, send_file
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 import os
-import warnings
-from werkzeug.exceptions import BadRequest
-
-# 隱藏 Flask 開發伺服器警告
-warnings.filterwarnings("ignore", message="This is a development server")
-warnings.filterwarnings("ignore", category=UserWarning, module="werkzeug")
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import tempfile
+import uuid
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reagent_inventory.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-# 資料庫檔案路徑
-DATABASE = 'reagents.db'
+# 資料庫模型
+class ReagentEntry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    reagent_name = db.Column(db.String(100), nullable=False)
+    reagent_batch_number = db.Column(db.String(50), nullable=False)
+    expiry_date = db.Column(db.Date, nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit = db.Column(db.String(20), nullable=False)
+    supplier = db.Column(db.String(100), nullable=False)
+    entry_date = db.Column(db.DateTime, default=datetime.utcnow)
 
+# 建立資料庫表格
 def init_db():
-    """初始化資料庫，建立必要的表格"""
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    
-    # 建立 used_reagents 表格
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS used_reagents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            item TEXT NOT NULL,
-            lot_number TEXT UNIQUE NOT NULL,
-            expiration_date TEXT NOT NULL,
-            quantity INTEGER DEFAULT 1,
-            unit TEXT,
-            supplier TEXT,
-            stored_date TEXT NOT NULL
-        )
-    ''')
-    
-    # 建立索引以提升查詢效能
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_lot_number ON used_reagents(lot_number)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_item ON used_reagents(item)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_stored_date ON used_reagents(stored_date)')
-    
-    conn.commit()
-    conn.close()
-    
-    print("資料庫初始化完成！")
+    try:
+        with app.app_context():
+            db.create_all()
+            print("資料庫初始化成功")
+    except Exception as e:
+        print(f"資料庫初始化失敗: {e}")
 
-def get_db_connection():
-    """獲取資料庫連接"""
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row  # 讓查詢結果可以像字典一樣存取
-    return conn
+init_db()
 
 @app.route('/')
 def index():
-    """主頁面 - 顯示試劑資訊儲存介面"""
     return render_template('index.html')
 
-@app.route('/search')
-def search_page():
-    """批號查詢頁面"""
-    return render_template('search.html')
-
-@app.route('/api/save_reagent', methods=['POST'])
-def save_reagent():
-    """儲存試劑資訊的 API 端點"""
+@app.route('/api/entries', methods=['GET'])
+def get_entries():
     try:
-        data = request.get_json()
+        entries = ReagentEntry.query.order_by(ReagentEntry.entry_date.desc()).all()
+        return jsonify([{
+            'id': entry.id,
+            'reagent_name': entry.reagent_name,
+            'reagent_batch_number': entry.reagent_batch_number,
+            'expiry_date': entry.expiry_date.strftime('%Y-%m-%d'),
+            'quantity': entry.quantity,
+            'unit': entry.unit,
+            'supplier': entry.supplier,
+            'entry_date': entry.entry_date.strftime('%Y-%m-%d %H:%M:%S')
+        } for entry in entries])
+    except Exception as e:
+        print(f"獲取記錄失敗: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/entries', methods=['POST'])
+def add_entry():
+    try:
+        data = request.json
         
-        # 驗證必要欄位
-        if not data:
-            raise BadRequest("沒有接收到資料")
+        # 檢查是否為新批號
+        existing_entry = ReagentEntry.query.filter_by(
+            reagent_name=data['reagent_name'],
+            reagent_batch_number=data['reagent_batch_number']
+        ).first()
         
-        item = data.get('item', '').strip()
-        lot_number = data.get('lot_number', '').strip()
-        expiration_date = data.get('expiration_date', '').strip()
+        entry = ReagentEntry(
+            reagent_name=data['reagent_name'],
+            reagent_batch_number=data['reagent_batch_number'],
+            expiry_date=datetime.strptime(data['expiry_date'], '%Y-%m-%d').date(),
+            quantity=data['quantity'],
+            unit=data['unit'],
+            supplier=data['supplier']
+        )
         
-        if not item:
-            return jsonify({'success': False, 'message': '請輸入檢驗項目名稱'}), 400
+        db.session.add(entry)
+        db.session.commit()
         
-        if not lot_number:
-            return jsonify({'success': False, 'message': '請輸入批號'}), 400
-        
-        if not expiration_date:
-            return jsonify({'success': False, 'message': '請選擇有效期限'}), 400
-        
-        # 檢查批號是否已存在
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT id, item, stored_date FROM used_reagents WHERE lot_number = ?', (lot_number,))
-        existing = cursor.fetchone()
-        
-        # 獲取當前時間
-        current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        if existing:
-            # 舊批號：更新數量，不顯示確認視窗
-            quantity = data.get('quantity', 1)
-            unit = data.get('unit', '').strip()
-            supplier = data.get('supplier', '').strip()
-            
-            # 更新現有記錄的數量和供應商資訊
-            cursor.execute('''
-                UPDATE used_reagents 
-                SET quantity = quantity + ?, unit = ?, supplier = ?, stored_date = ?
-                WHERE lot_number = ?
-            ''', (quantity, unit, supplier, current_time, lot_number))
-            
-            conn.commit()
-            conn.close()
-            
-            return jsonify({
-                'success': True,
-                'message': f'舊批號 {lot_number} 數量已更新，新增 {quantity} 個單位'
-            })
-        
-        # 獲取其他欄位
-        quantity = data.get('quantity', 1)
-        unit = data.get('unit', '').strip()
-        supplier = data.get('supplier', '').strip()
-        
-        # 插入新記錄
-        cursor.execute('''
-            INSERT INTO used_reagents (item, lot_number, expiration_date, quantity, unit, supplier, stored_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (item, lot_number, expiration_date, quantity, unit, supplier, current_time))
-        
-        conn.commit()
-        conn.close()
+        # 生成並列印標籤
+        labels_printed = generate_and_print_labels(entry)
         
         return jsonify({
             'success': True,
-            'message': f'試劑批號 {lot_number} 已成功儲存到系統中'
+            'message': f'入庫成功！已列印 {labels_printed} 張標籤'
         })
-        
-    except BadRequest as e:
-        return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
-        print(f"儲存試劑時發生錯誤: {e}")
-        return jsonify({'success': False, 'message': '儲存失敗，請稍後再試'}), 500
+        print(f"新增記錄失敗: {e}")
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/search_reagent', methods=['POST'])
-def search_reagent():
-    """查詢試劑批號的 API 端點"""
+@app.route('/api/search', methods=['GET'])
+def search_entries():
     try:
-        data = request.get_json()
+        query = request.args.get('q', '')
+        if not query:
+            return jsonify([])
         
-        if not data:
-            raise BadRequest("沒有接收到資料")
+        entries = ReagentEntry.query.filter(
+            db.or_(
+                ReagentEntry.reagent_name.contains(query),
+                ReagentEntry.reagent_batch_number.contains(query),
+                ReagentEntry.supplier.contains(query)
+            )
+        ).order_by(ReagentEntry.entry_date.desc()).all()
         
-        lot_number = data.get('lot_number', '').strip()
-        
-        if not lot_number:
-            return jsonify({'success': False, 'message': '請輸入批號'}), 400
-        
-        # 查詢資料庫
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, item, lot_number, expiration_date, quantity, unit, supplier, stored_date
-            FROM used_reagents 
-            WHERE lot_number = ?
-        ''', (lot_number,))
-        
-        result = cursor.fetchone()
-        conn.close()
-        
-        if result:
-            # 檢查是否過期
-            try:
-                exp_date = datetime.datetime.strptime(result['expiration_date'], '%Y-%m-%d').date()
-                today = datetime.date.today()
-                is_expired = exp_date < today
-            except:
-                is_expired = False
-            
-            return jsonify({
-                'success': True,
-                'found': True,
-                'message': f'批號 {lot_number} 已使用過',
-                'data': {
-                    'id': result['id'],
-                    'item': result['item'],
-                    'lot_number': result['lot_number'],
-                    'expiration_date': result['expiration_date'],
-                    'quantity': result['quantity'],
-                    'unit': result['unit'],
-                    'supplier': result['supplier'],
-                    'stored_date': result['stored_date'],
-                    'is_expired': is_expired
-                }
-            })
-        else:
-            return jsonify({
-                'success': True,
-                'found': False,
-                'message': f'批號 {lot_number} 尚未被使用'
-            })
-            
-    except BadRequest as e:
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify([{
+            'id': entry.id,
+            'reagent_name': entry.reagent_name,
+            'reagent_batch_number': entry.reagent_batch_number,
+            'expiry_date': entry.expiry_date.strftime('%Y-%m-%d'),
+            'quantity': entry.quantity,
+            'unit': entry.unit,
+            'supplier': entry.supplier,
+            'entry_date': entry.entry_date.strftime('%Y-%m-%d %H:%M:%S')
+        } for entry in entries])
     except Exception as e:
-        print(f"查詢試劑時發生錯誤: {e}")
-        return jsonify({'success': False, 'message': '查詢失敗，請稍後再試'}), 500
+        print(f"搜尋記錄失敗: {e}")
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/get_all_reagents')
-def get_all_reagents():
-    """獲取所有試劑資訊的 API 端點（用於顯示列表）"""
+@app.route('/api/print-labels/<int:entry_id>', methods=['POST'])
+def reprint_labels(entry_id):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        entry = ReagentEntry.query.get_or_404(entry_id)
+        data = request.json
+        quantity = data.get('quantity', entry.quantity)
         
-        cursor.execute('''
-            SELECT id, item, lot_number, expiration_date, quantity, unit, supplier, stored_date
-            FROM used_reagents 
-            ORDER BY stored_date DESC
-        ''')
+        labels_printed = generate_and_print_labels(entry, quantity)
         
-        results = cursor.fetchall()
-        conn.close()
-        
-        # 轉換為字典列表
-        reagents = []
-        for row in results:
-            try:
-                exp_date = datetime.datetime.strptime(row['expiration_date'], '%Y-%m-%d').date()
-                today = datetime.date.today()
-                is_expired = exp_date < today
-            except:
-                is_expired = False
-            
-            reagents.append({
-                'id': row['id'],
-                'item': row['item'],
-                'lot_number': row['lot_number'],
-                'expiration_date': row['expiration_date'],
-                'quantity': row['quantity'],
-                'unit': row['unit'],
-                'supplier': row['supplier'],
-                'stored_date': row['stored_date'],
-                'is_expired': is_expired
-            })
-        
-        return jsonify({'success': True, 'data': reagents})
-        
+        return jsonify({
+            'success': True,
+            'message': f'已重新列印 {labels_printed} 張標籤'
+        })
     except Exception as e:
-        print(f"獲取試劑列表時發生錯誤: {e}")
-        return jsonify({'success': False, 'message': '獲取資料失敗，請稍後再試'}), 500
+        print(f"補印標籤失敗: {e}")
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/list')
-def list_page():
-    """試劑列表頁面"""
-    return render_template('list.html')
-
-@app.route('/debug')
-def debug_page():
-    """系統診斷頁面"""
-    return render_template('debug.html')
+def generate_and_print_labels(entry, quantity=None):
+    if quantity is None:
+        quantity = entry.quantity
+    
+    # 建立標籤PDF
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+    c = canvas.Canvas(temp_file.name, pagesize=A4)
+    
+    for i in range(quantity):
+        # 標籤內容
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(20*mm, 270*mm, f"試劑名稱: {entry.reagent_name}")
+        
+        c.setFont("Helvetica", 14)
+        c.drawString(20*mm, 250*mm, f"試劑批號: {entry.reagent_batch_number}")
+        c.drawString(20*mm, 230*mm, f"穩定效期: {entry.expiry_date.strftime('%Y-%m-%d')}")
+        c.drawString(20*mm, 210*mm, f"入庫數量: {entry.quantity} {entry.unit}")
+        c.drawString(20*mm, 190*mm, f"供應商: {entry.supplier}")
+        c.drawString(20*mm, 170*mm, f"入庫日期: {entry.entry_date.strftime('%Y-%m-%d')}")
+        
+        # 如果不是最後一頁，新增頁面
+        if i < quantity - 1:
+            c.showPage()
+    
+    c.save()
+    
+    # 這裡可以整合實際的列印功能
+    # 目前只是生成PDF檔案
+    print(f"已生成 {quantity} 張標籤PDF: {temp_file.name}")
+    
+    return quantity
 
 if __name__ == '__main__':
-    # 確保資料庫存在
-    if not os.path.exists(DATABASE):
-        init_db()
-        print(f"已建立資料庫檔案: {DATABASE}")
-    
-    print("試劑批號確認系統啟動中...")
-    print("請在瀏覽器中開啟: http://localhost:5000")
-    
-    # 啟動 Flask 應用程式（隱藏開發伺服器警告）
-    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
