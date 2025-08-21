@@ -8,6 +8,16 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import os
+import subprocess
+
+# 嘗試導入Windows列印相關套件
+try:
+    import win32print
+    import win32api
+    WINDOWS_PRINT_AVAILABLE = True
+except ImportError:
+    WINDOWS_PRINT_AVAILABLE = False
+    print("警告：win32print 套件未安裝，Windows列印功能將不可用")
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///simple_inventory.db'
@@ -109,8 +119,7 @@ def add_entry():
         
         return jsonify({
             'success': True,
-            'is_new_batch': False,
-            'message': f'入庫成功！已列印 {labels_printed} 張標籤'
+            'is_new_batch': False
         })
         
     except Exception as e:
@@ -147,8 +156,7 @@ def confirm_entry():
         labels_printed = generate_and_print_labels(entry)
         
         return jsonify({
-            'success': True,
-            'message': f'新批號入庫成功！已列印 {labels_printed} 張標籤'
+            'success': True
         })
         
     except Exception as e:
@@ -281,15 +289,125 @@ def generate_and_print_labels(entry, quantity=None):
     
     c.save()
     
-    # 這裡可以整合實際的列印功能
-    # 目前只是生成PDF檔案
-    print(f"已生成 {quantity} 張標籤PDF: {temp_file.name}")
-    
-    return quantity
+    # 嘗試使用Windows預設印表機列印
+    try:
+        print(f"已生成 {quantity} 張標籤PDF: {temp_file.name}")
+        
+        if WINDOWS_PRINT_AVAILABLE:
+            print("正在嘗試列印...")
+            
+            # 獲取預設印表機名稱
+            default_printer = win32print.GetDefaultPrinter()
+            print(f"使用預設印表機: {default_printer}")
+            
+            # 使用系統預設應用程式開啟PDF（通常是Adobe Reader或其他PDF閱讀器）
+            # 這樣用戶可以選擇列印或儲存
+            subprocess.Popen(['start', temp_file.name], shell=True)
+            
+            print(f"PDF已開啟，請在PDF閱讀器中選擇列印或儲存")
+        else:
+            print("Windows列印功能不可用，改為開啟PDF檔案")
+            subprocess.Popen(['start', temp_file.name], shell=True)
+            print(f"PDF已開啟，請手動選擇列印或儲存")
+        
+        return quantity
+        
+    except Exception as e:
+        print(f"列印失敗: {e}")
+        print("改為自動開啟PDF檔案")
+        try:
+            # 如果列印失敗，至少開啟PDF讓用戶手動處理
+            subprocess.Popen(['start', temp_file.name], shell=True)
+        except:
+            pass
+        return quantity
 
 @app.route('/api/test')
 def test():
     return jsonify({'message': 'API測試成功', 'status': 'ok'})
+
+@app.route('/api/print-direct/<int:entry_id>', methods=['POST'])
+def print_direct(entry_id):
+    """直接列印到預設印表機"""
+    try:
+        entry = ReagentEntry.query.get_or_404(entry_id)
+        data = request.json
+        quantity = data.get('quantity', entry.quantity)
+        
+        print(f"直接列印請求: 記錄ID {entry_id}, 數量 {quantity}")
+        
+        # 生成標籤PDF
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+        c = canvas.Canvas(temp_file.name, pagesize=(50*mm, 35*mm))
+        
+        # 獲取中文字體
+        font_name = get_chinese_font()
+        
+        for i in range(quantity):
+            # 標籤邊框
+            c.rect(1*mm, 1*mm, 48*mm, 33*mm)
+            
+            # 標題
+            c.setFont(font_name, 10)
+            c.drawString(2*mm, 30*mm, "【入庫】")
+            
+            # 試劑名稱和批號
+            c.setFont(font_name, 8)
+            c.drawString(2*mm, 25*mm, f"名稱：{entry.reagent_name}")
+            c.drawString(25*mm, 25*mm, f"批號{entry.reagent_batch_number}")
+            
+            # 穩定效期
+            c.drawString(2*mm, 20*mm, f"穩定效期：{entry.expiry_date.strftime('%Y/%m/%d')}")
+            
+            # 入庫時間
+            c.drawString(2*mm, 15*mm, f"入庫時間：{entry.entry_date.strftime('%Y/%m/%d')}")
+            
+            # 出庫標題
+            c.setFont(font_name, 10)
+            c.drawString(2*mm, 7*mm, "【出庫】")
+            
+            # 出庫人員和日期
+            c.setFont(font_name, 8)
+            c.drawString(2*mm, 2*mm, "人員：")
+            c.drawString(25*mm, 2*mm, "出庫日期：")
+            
+            if i < quantity - 1:
+                c.showPage()
+        
+        c.save()
+        
+        # 嘗試直接列印到預設印表機
+        try:
+            if WINDOWS_PRINT_AVAILABLE:
+                default_printer = win32print.GetDefaultPrinter()
+                print(f"直接列印到: {default_printer}")
+                
+                # 使用系統命令列印PDF
+                win32api.ShellExecute(0, "print", temp_file.name, None, ".", 0)
+                
+                return jsonify({
+                    'success': True
+                })
+            else:
+                # Windows列印功能不可用，開啟PDF讓用戶手動處理
+                subprocess.Popen(['start', temp_file.name], shell=True)
+                
+                return jsonify({
+                    'success': True
+                })
+            
+        except Exception as e:
+            print(f"直接列印失敗: {e}")
+            # 如果直接列印失敗，開啟PDF讓用戶手動處理
+            subprocess.Popen(['start', temp_file.name], shell=True)
+            
+            return jsonify({
+                'success': True
+            })
+            
+    except Exception as e:
+        print(f"列印失敗: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/preview-label')
 def preview_label():
@@ -353,4 +471,4 @@ def preview_label():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='127.0.0.1', port=5000)

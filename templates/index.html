@@ -322,27 +322,7 @@
         </div>
     </div>
 
-    <!-- 補印標籤模態框 -->
-    <div class="modal fade" id="reprintModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">補印標籤</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="reprintQuantity" class="form-label">列印數量</label>
-                        <input type="number" class="form-control" id="reprintQuantity" min="1" value="1">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmReprint()">確認列印</button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- 成功提示模態框 -->
     <div class="modal fade" id="successModal" tabindex="-1">
@@ -409,7 +389,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentEntryId = null;
         let allEntries = [];
 
         // 頁面載入時獲取所有記錄
@@ -462,8 +441,8 @@
                      <td>${entry.supplier}</td>
                      <td>${entry.entry_date}</td>
                      <td>
-                         <button class="btn btn-warning btn-sm" onclick="showReprintModal(${entry.id})">
-                             <i class="fas fa-print me-1"></i>補印
+                         <button class="btn btn-success btn-sm" onclick="directPrint(${entry.id}, ${entry.quantity})">
+                             <i class="fas fa-print me-1"></i>列印
                          </button>
                      </td>
                  `;
@@ -492,33 +471,24 @@
 
 
 
-        // 顯示補印模態框
-        function showReprintModal(entryId) {
-            currentEntryId = entryId;
-            const modal = new bootstrap.Modal(document.getElementById('reprintModal'));
-            modal.show();
-        }
-
-        // 確認補印
-        async function confirmReprint() {
-            const quantity = document.getElementById('reprintQuantity').value;
-            
+        // 直接列印到預設印表機
+        async function directPrint(entryId, defaultQuantity) {
             try {
-                const response = await fetch(`/api/print-labels/${currentEntryId}`, {
+                const response = await fetch(`/api/print-direct/${entryId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ quantity: parseInt(quantity) })
+                    body: JSON.stringify({ quantity: defaultQuantity })
                 });
 
                 const result = await response.json();
-                if (result.success) {
-                    showSuccessModal(result.message);
-                    bootstrap.Modal.getInstance(document.getElementById('reprintModal')).hide();
+                if (!result.success) {
+                    alert('列印失敗：' + (result.message || '未知錯誤'));
                 }
             } catch (error) {
-                console.error('補印失敗:', error);
+                console.error('列印失敗:', error);
+                alert('列印失敗，請重試');
             }
         }
 
@@ -558,16 +528,15 @@
 
                  const result = await response.json();
                  
-                 if (result.success) {
-                     // 一般入庫成功
-                     showSuccessModal(result.message);
-                     
-                     // 清空表單
-                     document.getElementById('entryForm').reset();
-                     
-                     // 重新載入記錄
-                     loadEntries();
-                 } else if (result.is_new_batch) {
+                                   if (result.success) {
+                      // 一般入庫成功
+                      
+                      // 清空表單
+                      document.getElementById('entryForm').reset();
+                      
+                      // 重新載入記錄
+                      loadEntries();
+                  } else if (result.is_new_batch) {
                      // 檢測到新批號，顯示確認模態框
                      showNewBatchModal(result.message, result.data);
                  } else {
@@ -617,22 +586,21 @@
 
                  const result = await response.json();
                  
-                 if (result.success) {
-                     // 入庫成功
-                     showSuccessModal(result.message);
-                     
-                     // 清空表單
-                     document.getElementById('entryForm').reset();
-                     
-                     // 重新載入記錄
-                     loadEntries();
-                     
-                     // 關閉新批號確認模態框
-                     bootstrap.Modal.getInstance(document.getElementById('newBatchModal')).hide();
-                     
-                     // 清除待確認資料
-                     window.pendingEntryData = null;
-                 } else {
+                                   if (result.success) {
+                      // 入庫成功
+                      
+                      // 清空表單
+                      document.getElementById('entryForm').reset();
+                      
+                      // 重新載入記錄
+                      loadEntries();
+                      
+                      // 關閉新批號確認模態框
+                      bootstrap.Modal.getInstance(document.getElementById('newBatchModal')).hide();
+                      
+                      // 清除待確認資料
+                      window.pendingEntryData = null;
+                  } else {
                      alert('確認入庫失敗：' + (result.message || '未知錯誤'));
                  }
              } catch (error) {
