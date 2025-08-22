@@ -24,7 +24,7 @@ echo 按 Ctrl+C 可停止程式
 echo.
 
 REM 啟動Flask應用並等待3秒讓服務啟動
-start /B python simple_app.py
+start /B python app.py
 timeout /t 3 /nobreak >nul
 
 REM 自動開啟預設瀏覽器到指定網址

@@ -301,11 +301,11 @@
                                     <thead>
                                         <tr>
                                             <th>試劑名稱</th>
-                                            <th>試劑批號</th>
-                                            <th>穩定效期</th>
+                                            <th>新批號</th>
+                                            <th>舊批號</th>
                                             <th>數量</th>
-                                            <th>單位</th>
-                                            <th>供應商</th>
+                                            <th>類型</th>
+                                            <th>備註</th>
                                             <th>入庫日期</th>
                                             <th>操作</th>
                                         </tr>
@@ -409,46 +409,69 @@
         async function loadEntries() {
             try {
                 const response = await fetch('/api/entries');
-                allEntries = await response.json();
+                const data = await response.json();
+                
+                // 確保 allEntries 始終是陣列
+                if (Array.isArray(data)) {
+                    allEntries = data;
+                } else if (data && data.error) {
+                    console.error('API 錯誤:', data.error);
+                    allEntries = [];
+                } else {
+                    console.warn('API 返回非陣列資料:', data);
+                    allEntries = [];
+                }
+                
+                console.log('載入記錄成功，共 ' + allEntries.length + ' 筆');
                 displayEntries(allEntries);
             } catch (error) {
                 console.error('載入記錄失敗:', error);
+                allEntries = [];
+                displayEntries([]);
             }
         }
 
-                 // 顯示入庫記錄
-         function displayEntries(entries) {
-             const tbody = document.getElementById('entriesTableBody');
-             tbody.innerHTML = '';
+                         // 顯示入庫記錄
+        function displayEntries(entries) {
+            const tbody = document.getElementById('entriesTableBody');
+            tbody.innerHTML = '';
 
-             // 更新記錄數量
-             document.getElementById('recordCount').textContent = `共 ${entries.length} 筆記錄`;
+            // 確保 entries 是陣列
+            if (!Array.isArray(entries)) {
+                console.error('displayEntries: 參數不是陣列', entries);
+                entries = [];
+            }
 
-             if (entries.length === 0) {
-                 tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">沒有找到符合條件的記錄</td></tr>';
-                 return;
-             }
+            // 更新記錄數量
+            document.getElementById('recordCount').textContent = `共 ${entries.length} 筆記錄`;
 
-             entries.forEach(entry => {
-                 const row = document.createElement('tr');
+            if (entries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">沒有找到符合條件的記錄</td></tr>';
+                return;
+            }
 
-                 row.innerHTML = `
-                     <td>${entry.reagent_name}</td>
-                     <td><strong>${entry.reagent_batch_number}</strong></td>
-                     <td>${entry.expiry_date}</td>
-                     <td><span class="badge bg-primary">${entry.quantity}</span></td>
-                     <td>${entry.unit}</td>
-                     <td>${entry.supplier}</td>
-                     <td>${entry.entry_date}</td>
-                     <td>
-                         <button class="btn btn-success btn-sm" onclick="directPrint(${entry.id}, ${entry.quantity})">
-                             <i class="fas fa-print me-1"></i>列印
-                         </button>
-                     </td>
-                 `;
-                 tbody.appendChild(row);
-             });
-         }
+            // 使用 for 循環代替 forEach
+            for (let i = 0; i < entries.length; i++) {
+                const entry = entries[i];
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+                    <td>${entry.reagent_name}</td>
+                    <td><strong>${entry.reagent_batch_number || ''}</strong></td>
+                    <td>${entry.old_batch_number || ''}</td>
+                    <td><span class="badge bg-primary">${entry.quantity}</span></td>
+                    <td>${entry.entry_type || ''}</td>
+                    <td>${entry.notes || ''}</td>
+                    <td>${entry.entry_date}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="directPrint(${entry.id}, ${entry.quantity})">
+                            <i class="fas fa-print me-1"></i>列印
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
 
         // 搜尋功能
         function searchEntries() {

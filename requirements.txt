@@ -4,5 +4,5 @@ Werkzeug==2.3.7
 python-dateutil==2.8.2
 reportlab==4.0.4
 Pillow==10.0.1
-# Windows列印功能（可選）
-# pywin32==306
+# Windows列印功能
+pywin32==306
