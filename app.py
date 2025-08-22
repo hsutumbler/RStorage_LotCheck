@@ -20,12 +20,32 @@ except ImportError:
     print("警告：win32print 套件未安裝，Windows列印功能將不可用")
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reagent_inventory.db'  # 更改為主要資料庫
+
+# 獲取當前工作目錄的絕對路徑
+base_dir = os.path.abspath(os.path.dirname(__file__))
+instance_dir = os.path.join(base_dir, 'instance')
+
+# 確保 instance 目錄存在
+try:
+    if not os.path.exists(instance_dir):
+        os.makedirs(instance_dir)
+        print(f"已創建 instance 目錄: {instance_dir}")
+except Exception as e:
+    print(f"創建 instance 目錄失敗: {e}")
+
+# 構建資料庫文件的絕對路徑
+db_path = os.path.join(instance_dir, 'reagent_inventory.db')
+db_uri = f'sqlite:///{db_path}'
+
+print(f"資料庫路徑: {db_path}")
+app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# 資料庫模型 - 修改為匹配現有的資料庫結構
+# 資料庫模型 - 必須在 create_all 之前定義
 class ReagentEntry(db.Model):
+    __tablename__ = 'reagent_entry'  # 明確指定表名
+    
     id = db.Column(db.Integer, primary_key=True)
     reagent_name = db.Column(db.String(100), nullable=False)
     old_batch_number = db.Column(db.String(50), nullable=True)
@@ -33,7 +53,46 @@ class ReagentEntry(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     entry_date = db.Column(db.DateTime, default=datetime.utcnow)
     entry_type = db.Column(db.String(20), nullable=True)
-    notes = db.Column(db.Text, nullable=True)
+    expiry_date = db.Column(db.Date, nullable=True)  # 添加穩定效期欄位
+    supplier = db.Column(db.String(50), nullable=True)  # 添加供應商欄位
+    unit = db.Column(db.String(20), nullable=True)  # 添加單位欄位
+    
+    def __repr__(self):
+        return f'<ReagentEntry {self.reagent_name} - {self.new_batch_number}>'
+
+# 確保在應用程序啟動時創建所有表
+def init_db():
+    with app.app_context():
+        try:
+            # 刪除現有的資料庫文件（如果存在）
+            if os.path.exists(db_path):
+                os.remove(db_path)
+                print("已刪除舊的資料庫文件")
+            
+            # 創建新的資料庫和表
+            db.create_all()
+            
+            # 驗證表是否創建成功
+            inspector = db.inspect(db.engine)
+            tables = inspector.get_table_names()
+            print(f"已創建的表: {tables}")
+            
+            if 'reagent_entry' in tables:
+                # 檢查表結構
+                columns = [col['name'] for col in inspector.get_columns('reagent_entry')]
+                print(f"reagent_entry 表的欄位: {columns}")
+                print("資料庫和表結構創建成功")
+            else:
+                print("警告：reagent_entry 表未創建")
+                
+        except Exception as e:
+            print(f"資料庫操作失敗: {e}")
+            print(f"當前工作目錄: {os.getcwd()}")
+            print(f"目標目錄權限: {os.access(instance_dir, os.W_OK)}")
+            raise e
+
+# 初始化資料庫
+init_db()
 
 @app.route('/')
 def index():
@@ -42,10 +101,6 @@ def index():
 @app.route('/api/entries', methods=['GET'])
 def get_entries():
     try:
-        # 先建立資料庫
-        with app.app_context():
-            db.create_all()
-        
         # 查詢記錄
         entries = ReagentEntry.query.order_by(ReagentEntry.entry_date.desc()).all()
         print(f"找到 {len(entries)} 筆記錄")
@@ -60,11 +115,11 @@ def get_entries():
                 'id': entry.id,
                 'reagent_name': entry.reagent_name,
                 'reagent_batch_number': batch_number,  # 使用 new_batch_number 作為 reagent_batch_number
-                'old_batch_number': old_batch,
                 'quantity': entry.quantity,
-                'entry_type': entry.entry_type or "",
-                'notes': entry.notes or "",
-                'entry_date': entry.entry_date.strftime('%Y-%m-%d %H:%M:%S') if entry.entry_date else ""
+                'expiry_date': entry.expiry_date.strftime('%Y-%m-%d') if entry.expiry_date else "無資料",
+                'entry_date': entry.entry_date.strftime('%Y-%m-%d %H:%M:%S') if entry.entry_date else "",
+                'supplier': entry.supplier or "無資料",  # 添加供應商資訊
+                'unit': entry.unit or "個"  # 添加單位資訊，默認為"個"
             })
         
         print(f"返回 {len(result)} 筆記錄")
@@ -90,10 +145,6 @@ def add_entry():
         data = request.json
         print(f"收到新增請求: {data}")
         
-        # 建立資料庫
-        with app.app_context():
-            db.create_all()
-        
         # 檢查是否為新批號
         existing_entry = ReagentEntry.query.filter_by(
             reagent_name=data['reagent_name'],
@@ -112,13 +163,24 @@ def add_entry():
             })
         
         # 如果不是新批號，直接入庫
+        # 打印收到的數據，用於調試
+        print("收到的數據:", data)
+        
+        try:
+            expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date() if data.get('expiry_date') else None
+        except Exception as e:
+            print(f"解析穩定效期時出錯: {e}")
+            expiry_date = None
+
         entry = ReagentEntry(
             reagent_name=data['reagent_name'],
             new_batch_number=data['reagent_batch_number'],
             old_batch_number=data.get('old_batch_number', ''),
             quantity=data['quantity'],
             entry_type='old',  # 標記為舊批號
-            notes=data.get('notes', '')
+            expiry_date=expiry_date,
+            supplier=data.get('supplier', ''),  # 保存供應商資訊
+            unit=data.get('unit', '')  # 保存單位資訊
         )
         
         db.session.add(entry)
@@ -146,17 +208,24 @@ def confirm_entry():
         data = request.json
         print(f"確認入庫請求: {data}")
         
-        # 建立資料庫
-        with app.app_context():
-            db.create_all()
+        # 打印收到的數據，用於調試
+        print("收到的數據:", data)
         
+        try:
+            expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date() if data.get('expiry_date') else None
+        except Exception as e:
+            print(f"解析穩定效期時出錯: {e}")
+            expiry_date = None
+
         entry = ReagentEntry(
             reagent_name=data['reagent_name'],
             new_batch_number=data['reagent_batch_number'],
             old_batch_number=data.get('old_batch_number', ''),
             quantity=data['quantity'],
             entry_type='new',  # 標記為新批號
-            notes=data.get('notes', '')
+            expiry_date=expiry_date,
+            supplier=data.get('supplier', ''),  # 保存供應商資訊
+            unit=data.get('unit', '')  # 保存單位資訊
         )
         
         db.session.add(entry)
@@ -187,9 +256,7 @@ def search_entries():
         entries = ReagentEntry.query.filter(
             db.or_(
                 ReagentEntry.reagent_name.contains(query),
-                ReagentEntry.new_batch_number.contains(query),
-                ReagentEntry.old_batch_number.contains(query),
-                ReagentEntry.notes.contains(query)
+                ReagentEntry.new_batch_number.contains(query)
             )
         ).order_by(ReagentEntry.entry_date.desc()).all()
         
@@ -285,16 +352,12 @@ def generate_and_print_labels(entry, quantity=None):
         c.drawString(2*mm, 25*mm, f"名稱：{entry.reagent_name}")
         c.drawString(25*mm, 25*mm, f"批號：{entry.new_batch_number}")
         
-        # 舊批號（如果有）
-        if entry.old_batch_number:
-            c.drawString(2*mm, 20*mm, f"舊批號：{entry.old_batch_number}")
+        # 穩定效期（如果有）
+        if entry.expiry_date:
+            c.drawString(2*mm, 20*mm, f"穩定效期：{entry.expiry_date.strftime('%Y/%m/%d')}")
         
         # 入庫時間
         c.drawString(2*mm, 15*mm, f"入庫時間：{entry.entry_date.strftime('%Y/%m/%d') if entry.entry_date else ''}")
-        
-        # 備註（如果有）
-        if entry.notes:
-            c.drawString(2*mm, 10*mm, f"備註：{entry.notes}")
         
         # 出庫標題 - 離上一行0.8cm (8mm)
         c.setFont(font_name, 10)
@@ -378,16 +441,12 @@ def print_direct(entry_id):
             c.drawString(2*mm, 25*mm, f"名稱：{entry.reagent_name}")
             c.drawString(25*mm, 25*mm, f"批號：{entry.new_batch_number}")
             
-            # 舊批號（如果有）
-            if entry.old_batch_number:
-                c.drawString(2*mm, 20*mm, f"舊批號：{entry.old_batch_number}")
+            # 穩定效期（如果有）
+            if entry.expiry_date:
+                c.drawString(2*mm, 20*mm, f"穩定效期：{entry.expiry_date.strftime('%Y/%m/%d')}")
             
             # 入庫時間
             c.drawString(2*mm, 15*mm, f"入庫時間：{entry.entry_date.strftime('%Y/%m/%d') if entry.entry_date else ''}")
-            
-            # 備註（如果有）
-            if entry.notes:
-                c.drawString(2*mm, 10*mm, f"備註：{entry.notes}")
             
             # 出庫標題
             c.setFont(font_name, 10)

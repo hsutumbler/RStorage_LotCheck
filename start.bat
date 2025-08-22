@@ -18,24 +18,20 @@ echo.
 echo 套件安裝完成
 echo.
 echo 正在啟動系統...
-echo 系統將自動開啟瀏覽器到 http://127.0.0.1:5000
+echo 系統將自動開啟瀏覽器
 echo.
 echo 按 Ctrl+C 可停止程式
 echo.
 
-REM 啟動Flask應用並等待3秒讓服務啟動
-start /B python app.py
-timeout /t 3 /nobreak >nul
-
-REM 自動開啟預設瀏覽器到指定網址
-start http://127.0.0.1:5000
+REM 啟動Flask應用並自動開啟瀏覽器
+start /B python run_app.py
 
 echo.
-echo 瀏覽器已自動開啟！
-echo 如果瀏覽器沒有自動開啟，請手動前往：http://127.0.0.1:5000
+echo 系統已啟動！
+echo 如果瀏覽器沒有自動開啟，請稍等片刻或查看控制台輸出獲取正確的URL
 echo.
 echo 系統正在背景執行中...
-echo 要停止系統，請關閉此視窗或按任意鍵
+echo 要停止系統，請執行 stop_service.bat 或按任意鍵關閉此視窗
 echo.
 
 pause

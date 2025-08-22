@@ -76,21 +76,7 @@
             border-radius: 20px;
             border: none;
         }
-        .search-box {
-            position: relative;
-        }
-        .search-box .form-control {
-            padding-right: 50px;
-        }
-        .search-box .btn {
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-        }
+
         .batch-new {
             background: linear-gradient(45deg, #ff9a9e, #fecfef);
             color: white;
@@ -239,40 +225,30 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <label for="filterName" class="form-label fw-bold">試劑名稱</label>
                                     <input type="text" class="form-control" id="filterName" placeholder="輸入試劑名稱">
                                 </div>
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <label for="filterSupplier" class="form-label fw-bold">供應商</label>
                                     <select class="form-control" id="filterSupplier">
-                                        <option value="">全部供應商</option>
+                                        <option value="">全部</option>
                                         <option value="醫全">醫全</option>
                                         <option value="亞培">亞培</option>
                                         <option value="希森美康">希森美康</option>
                                         <option value="沃芬">沃芬</option>
                                     </select>
                                 </div>
-                                <div class="col-md-3 mb-3">
-                                    <label for="filterDateFrom" class="form-label fw-bold">開始日期</label>
-                                    <input type="date" class="form-control" id="filterDateFrom">
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label for="filterDateTo" class="form-label fw-bold">結束日期</label>
-                                    <input type="date" class="form-control" id="filterDateTo">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">入庫日期期間</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" class="form-control" id="filterDateFrom" placeholder="開始日期">
+                                        <input type="date" class="form-control" id="filterDateTo" placeholder="結束日期">
+                                    </div>
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="searchInput" class="form-label fw-bold">關鍵字搜尋</label>
-                                    <div class="search-box">
-                                        <input type="text" class="form-control" id="searchInput" placeholder="搜尋試劑名稱、批號...">
-                                        <button class="btn btn-success" onclick="searchEntries()">
-                                            <i class="fas fa-search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-3 d-flex align-items-end">
+                                <div class="col-12 d-flex justify-content-end">
                                     <button class="btn btn-primary me-2" onclick="applyFilters()">
                                         <i class="fas fa-filter me-2"></i>套用篩選
                                     </button>
@@ -301,11 +277,11 @@
                                     <thead>
                                         <tr>
                                             <th>試劑名稱</th>
-                                            <th>新批號</th>
-                                            <th>舊批號</th>
+                                            <th>批號</th>
+                                            <th>穩定效期</th>
                                             <th>數量</th>
-                                            <th>類型</th>
-                                            <th>備註</th>
+                                            <th>單位</th>
+                                            <th>供應商</th>
                                             <th>入庫日期</th>
                                             <th>操作</th>
                                         </tr>
@@ -458,10 +434,10 @@
                 row.innerHTML = `
                     <td>${entry.reagent_name}</td>
                     <td><strong>${entry.reagent_batch_number || ''}</strong></td>
-                    <td>${entry.old_batch_number || ''}</td>
+                    <td>${entry.expiry_date || '無資料'}</td>
                     <td><span class="badge bg-primary">${entry.quantity}</span></td>
-                    <td>${entry.entry_type || ''}</td>
-                    <td>${entry.notes || ''}</td>
+                    <td>${entry.unit || '個'}</td>
+                    <td>${entry.supplier || '無資料'}</td>
                     <td>${entry.entry_date}</td>
                     <td>
                         <button class="btn btn-success btn-sm" onclick="directPrint(${entry.id}, ${entry.quantity})">
@@ -471,25 +447,6 @@
                 `;
                 tbody.appendChild(row);
             }
-        }
-
-        // 搜尋功能
-        function searchEntries() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                // 如果沒有關鍵字，顯示所有記錄
-                displayEntries(allEntries);
-                return;
-            }
-
-            // 在現有記錄中搜尋
-            const searchResults = allEntries.filter(entry => 
-                entry.reagent_name.toLowerCase().includes(query.toLowerCase()) ||
-                entry.reagent_batch_number.toLowerCase().includes(query.toLowerCase()) ||
-                entry.supplier.toLowerCase().includes(query.toLowerCase())
-            );
-
-            displayEntries(searchResults);
         }
 
 
@@ -632,12 +589,7 @@
              }
          }
 
-         // 搜尋框按Enter鍵觸發搜尋
-         document.getElementById('searchInput').addEventListener('keypress', function(e) {
-             if (e.key === 'Enter') {
-                 searchEntries();
-             }
-         });
+
 
          // 處理單位選擇變更
          function handleUnitChange() {
@@ -695,54 +647,54 @@
              return true;
          }
 
-         // 套用篩選器
-         function applyFilters() {
-             const filterName = document.getElementById('filterName').value.trim();
-             const filterSupplier = document.getElementById('filterSupplier').value;
-             const filterDateFrom = document.getElementById('filterDateFrom').value;
-             const filterDateTo = document.getElementById('filterDateTo').value;
+                 // 套用篩選器
+        function applyFilters() {
+            const filterName = document.getElementById('filterName').value.trim();
+            const filterSupplier = document.getElementById('filterSupplier').value;
+            const filterDateFrom = document.getElementById('filterDateFrom').value;
+            const filterDateTo = document.getElementById('filterDateTo').value;
 
-             let filteredEntries = allEntries.filter(entry => {
-                 // 名稱篩選
-                 if (filterName && !entry.reagent_name.toLowerCase().includes(filterName.toLowerCase())) {
-                     return false;
-                 }
+            let filteredEntries = allEntries.filter(entry => {
+                // 名稱篩選
+                if (filterName && !entry.reagent_name.toLowerCase().includes(filterName.toLowerCase())) {
+                    return false;
+                }
 
-                 // 供應商篩選
-                 if (filterSupplier && entry.supplier !== filterSupplier) {
-                     return false;
-                 }
+                // 供應商篩選
+                if (filterSupplier && entry.supplier !== filterSupplier) {
+                    return false;
+                }
 
-                 // 日期範圍篩選
-                 if (filterDateFrom || filterDateTo) {
-                     const entryDate = new Date(entry.entry_date.split(' ')[0]); // 只取日期部分
-                     
-                     if (filterDateFrom && entryDate < new Date(filterDateFrom)) {
-                         return false;
-                     }
-                     
-                     if (filterDateTo && entryDate > new Date(filterDateTo)) {
-                         return false;
-                     }
-                 }
+                // 日期範圍篩選
+                if (filterDateFrom || filterDateTo) {
+                    const entryDate = new Date(entry.entry_date.split(' ')[0]); // 只取日期部分
+                    
+                    if (filterDateFrom && entryDate < new Date(filterDateFrom)) {
+                        return false;
+                    }
+                    
+                    if (filterDateTo && entryDate > new Date(filterDateTo)) {
+                        return false;
+                    }
+                }
 
-                 return true;
-             });
+                return true;
+            });
 
              displayEntries(filteredEntries);
          }
 
-         // 清除篩選器
-         function clearFilters() {
-             document.getElementById('filterName').value = '';
-             document.getElementById('filterSupplier').value = '';
-             document.getElementById('filterDateFrom').value = '';
-             document.getElementById('filterDateTo').value = '';
-             document.getElementById('searchInput').value = '';
-             
-             // 重新顯示所有記錄
-             displayEntries(allEntries);
-         }
+                 // 清除篩選器
+        function clearFilters() {
+            document.getElementById('filterName').value = '';
+            document.getElementById('filterSupplier').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+
+            
+            // 重新顯示所有記錄
+            displayEntries(allEntries);
+        }
 
          // 匯出CSV功能
          function exportToCSV() {
@@ -752,22 +704,22 @@
                  return;
              }
 
-             // CSV標題
-             const headers = ['試劑名稱', '試劑批號', '穩定效期', '數量', '單位', '供應商', '入庫日期'];
-             
-             // CSV內容
-             const csvContent = [
-                 headers.join(','),
-                 ...currentEntries.map(entry => [
-                     entry.reagent_name,
-                     entry.reagent_batch_number,
-                     entry.expiry_date,
-                     entry.quantity,
-                     entry.unit,
-                     entry.supplier,
-                     entry.entry_date
-                 ].join(','))
-             ].join('\n');
+                         // CSV標題
+            const headers = ['試劑名稱', '批號', '穩定效期', '數量', '單位', '供應商', '入庫日期'];
+            
+            // CSV內容
+            const csvContent = [
+                headers.join(','),
+                ...currentEntries.map(entry => [
+                    entry.reagent_name,
+                    entry.reagent_batch_number,
+                    entry.expiry_date || '無資料',
+                    entry.quantity,
+                    entry.unit || '個',
+                    entry.supplier || '無資料',
+                    entry.entry_date
+                ].join(','))
+            ].join('\n');
 
              // 創建下載連結
              const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
