@@ -76,7 +76,21 @@
             border-radius: 20px;
             border: none;
         }
-
+        .search-box {
+            position: relative;
+        }
+        .search-box .form-control {
+            padding-right: 50px;
+        }
+        .search-box .btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+        }
         .batch-new {
             background: linear-gradient(45deg, #ff9a9e, #fecfef);
             color: white;
@@ -158,53 +172,53 @@
                             <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>新增入庫資料</h5>
                         </div>
                         <div class="card-body">
-                            <form id="entryForm">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="reagentName" class="form-label fw-bold">試劑名稱 *</label>
-                                        <input type="text" class="form-control" id="reagentName" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="reagentBatchNumber" class="form-label fw-bold">試劑批號 *</label>
-                                        <input type="text" class="form-control" id="reagentBatchNumber" required>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="expiryDate" class="form-label fw-bold">穩定效期 *</label>
-                                        <input type="date" class="form-control" id="expiryDate" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="quantity" class="form-label fw-bold">入庫數量 *</label>
-                                        <input type="number" class="form-control" id="quantity" min="1" required>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="unit" class="form-label fw-bold">單位 *</label>
-                                        <select class="form-control" id="unit" required onchange="handleUnitChange()">
-                                            <option value="">請選擇單位</option>
-                                            <option value="箱">箱</option>
-                                            <option value="盒">盒</option>
-                                            <option value="瓶">瓶</option>
-                                            <option value="組">組</option>
-                                            <option value="其他">其他</option>
-                                        </select>
-                                        <input type="text" class="form-control mt-2" id="unitOther" placeholder="請輸入其他單位" style="display: none;">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="supplier" class="form-label fw-bold">供應商 *</label>
-                                        <select class="form-control" id="supplier" required onchange="handleSupplierChange()">
-                                            <option value="">請選擇供應商</option>
-                                            <option value="醫全">醫全</option>
-                                            <option value="亞培">亞培</option>
-                                            <option value="希森美康">希森美康</option>
-                                            <option value="沃芬">沃芬</option>
-                                            <option value="其他">其他</option>
-                                        </select>
-                                        <input type="text" class="form-control mt-2" id="supplierOther" placeholder="請輸入其他供應商" style="display: none;">
-                                    </div>
-                                </div>
+                                                         <form id="entryForm">
+                                 <div class="row">
+                                     <div class="col-md-6 mb-3">
+                                         <label for="reagentName" class="form-label fw-bold">試劑名稱 *</label>
+                                         <input type="text" class="form-control" id="reagentName" required>
+                                     </div>
+                                     <div class="col-md-6 mb-3">
+                                         <label for="reagentBatchNumber" class="form-label fw-bold">試劑批號 *</label>
+                                         <input type="text" class="form-control" id="reagentBatchNumber" required>
+                                     </div>
+                                 </div>
+                                 <div class="row">
+                                     <div class="col-md-6 mb-3">
+                                         <label for="expiryDate" class="form-label fw-bold">穩定效期 *</label>
+                                         <input type="date" class="form-control" id="expiryDate" required>
+                                     </div>
+                                     <div class="col-md-6 mb-3">
+                                         <label for="quantity" class="form-label fw-bold">入庫數量 *</label>
+                                         <input type="number" class="form-control" id="quantity" min="1" required>
+                                     </div>
+                                 </div>
+                                 <div class="row">
+                                     <div class="col-md-6 mb-3">
+                                         <label for="unit" class="form-label fw-bold">單位 *</label>
+                                         <select class="form-control" id="unit" required onchange="handleUnitChange()">
+                                             <option value="">請選擇單位</option>
+                                             <option value="箱">箱</option>
+                                             <option value="盒">盒</option>
+                                             <option value="瓶">瓶</option>
+                                             <option value="組">組</option>
+                                             <option value="其他">其他</option>
+                                         </select>
+                                         <input type="text" class="form-control mt-2" id="unitOther" placeholder="請輸入其他單位" style="display: none;">
+                                     </div>
+                                     <div class="col-md-6 mb-3">
+                                         <label for="supplier" class="form-label fw-bold">供應商 *</label>
+                                         <select class="form-control" id="supplier" required onchange="handleSupplierChange()">
+                                             <option value="">請選擇供應商</option>
+                                             <option value="醫全">醫全</option>
+                                             <option value="亞培">亞培</option>
+                                             <option value="希森美康">希森美康</option>
+                                             <option value="沃芬">沃芬</option>
+                                             <option value="其他">其他</option>
+                                         </select>
+                                         <input type="text" class="form-control mt-2" id="supplierOther" placeholder="請輸入其他供應商" style="display: none;">
+                                     </div>
+                                 </div>
 
                                 <div class="text-center">
                                     <button type="submit" class="btn btn-primary btn-lg">
@@ -225,30 +239,40 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-3 mb-3">
                                     <label for="filterName" class="form-label fw-bold">試劑名稱</label>
                                     <input type="text" class="form-control" id="filterName" placeholder="輸入試劑名稱">
                                 </div>
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-3 mb-3">
                                     <label for="filterSupplier" class="form-label fw-bold">供應商</label>
                                     <select class="form-control" id="filterSupplier">
-                                        <option value="">全部</option>
+                                        <option value="">全部供應商</option>
                                         <option value="醫全">醫全</option>
                                         <option value="亞培">亞培</option>
                                         <option value="希森美康">希森美康</option>
                                         <option value="沃芬">沃芬</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label fw-bold">入庫日期期間</label>
-                                    <div class="d-flex gap-2">
-                                        <input type="date" class="form-control" id="filterDateFrom" placeholder="開始日期">
-                                        <input type="date" class="form-control" id="filterDateTo" placeholder="結束日期">
-                                    </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="filterDateFrom" class="form-label fw-bold">開始日期</label>
+                                    <input type="date" class="form-control" id="filterDateFrom">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="filterDateTo" class="form-label fw-bold">結束日期</label>
+                                    <input type="date" class="form-control" id="filterDateTo">
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-12 d-flex justify-content-end">
+                                <div class="col-md-6 mb-3">
+                                    <label for="searchInput" class="form-label fw-bold">關鍵字搜尋</label>
+                                    <div class="search-box">
+                                        <input type="text" class="form-control" id="searchInput" placeholder="搜尋試劑名稱、批號...">
+                                        <button class="btn btn-success" onclick="searchEntries()">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3 d-flex align-items-end">
                                     <button class="btn btn-primary me-2" onclick="applyFilters()">
                                         <i class="fas fa-filter me-2"></i>套用篩選
                                     </button>
@@ -266,9 +290,6 @@
                             <h5 class="mb-0"><i class="fas fa-list me-2"></i>入庫紀錄</h5>
                             <div class="d-flex align-items-center">
                                 <span class="badge bg-light text-dark me-3" id="recordCount">共 0 筆記錄</span>
-                                <button class="btn btn-outline-light btn-sm me-2" onclick="showImportModal()">
-                                    <i class="fas fa-upload me-1"></i>匯入
-                                </button>
                                 <button class="btn btn-outline-light btn-sm" onclick="exportToCSV()">
                                     <i class="fas fa-download me-1"></i>匯出
                                 </button>
@@ -280,7 +301,7 @@
                                     <thead>
                                         <tr>
                                             <th>試劑名稱</th>
-                                            <th>批號</th>
+                                            <th>試劑批號</th>
                                             <th>穩定效期</th>
                                             <th>數量</th>
                                             <th>單位</th>
@@ -300,6 +321,8 @@
             </div>
         </div>
     </div>
+
+
 
     <!-- 成功提示模態框 -->
     <div class="modal fade" id="successModal" tabindex="-1">
@@ -364,75 +387,6 @@
         </div>
     </div>
 
-    <!-- 匯入模態框 -->
-    <div class="modal fade" id="importModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">
-                        <i class="fas fa-upload me-2"></i>匯入試劑資料
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-info">
-                        <h6 class="alert-heading">匯入說明</h6>
-                        <p class="mb-0">
-                            1. 請準備CSV檔案，欄位順序：試劑名稱,批號,穩定效期,數量,單位,供應商<br>
-                            2. 穩定效期格式：YYYY-MM-DD（可選）<br>
-                            3. 數量必須為數字<br>
-                            4. 支援的單位：個、支、瓶、盒、包、其他<br>
-                            5. 支援的供應商：醫全、亞培、希森美康、沃芬、其他
-                        </p>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="importFile" class="form-label fw-bold">選擇CSV檔案</label>
-                            <input type="file" class="form-control" id="importFile" accept=".csv" onchange="handleFileSelect(event)">
-                        </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <button class="btn btn-outline-primary" onclick="downloadTemplate()">
-                                <i class="fas fa-download me-1"></i>下載模板
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div id="importPreview" style="display: none;">
-                        <h6 class="fw-bold">資料預覽（前5筆）</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered" id="previewTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>試劑名稱</th>
-                                        <th>批號</th>
-                                        <th>穩定效期</th>
-                                        <th>數量</th>
-                                        <th>單位</th>
-                                        <th>供應商</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="previewTableBody">
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="alert alert-warning" id="importValidation" style="display: none;">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <span id="validationMessage"></span>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="importButton" onclick="importData()" disabled>
-                        <i class="fas fa-upload me-2"></i>開始匯入
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let allEntries = [];
@@ -455,69 +409,67 @@
         async function loadEntries() {
             try {
                 const response = await fetch('/api/entries');
-                const data = await response.json();
-                
-                // 確保 allEntries 始終是陣列
-                if (Array.isArray(data)) {
-                    allEntries = data;
-                } else if (data && data.error) {
-                    console.error('API 錯誤:', data.error);
-                    allEntries = [];
-                } else {
-                    console.warn('API 返回非陣列資料:', data);
-                    allEntries = [];
-                }
-                
-                console.log('載入記錄成功，共 ' + allEntries.length + ' 筆');
+                allEntries = await response.json();
                 displayEntries(allEntries);
             } catch (error) {
                 console.error('載入記錄失敗:', error);
-                allEntries = [];
-                displayEntries([]);
             }
         }
 
-        // 顯示入庫記錄
-        function displayEntries(entries) {
-            const tbody = document.getElementById('entriesTableBody');
-            tbody.innerHTML = '';
+                 // 顯示入庫記錄
+         function displayEntries(entries) {
+             const tbody = document.getElementById('entriesTableBody');
+             tbody.innerHTML = '';
 
-            // 確保 entries 是陣列
-            if (!Array.isArray(entries)) {
-                console.error('displayEntries: 參數不是陣列', entries);
-                entries = [];
-            }
+             // 更新記錄數量
+             document.getElementById('recordCount').textContent = `共 ${entries.length} 筆記錄`;
 
-            // 更新記錄數量
-            document.getElementById('recordCount').textContent = `共 ${entries.length} 筆記錄`;
+             if (entries.length === 0) {
+                 tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">沒有找到符合條件的記錄</td></tr>';
+                 return;
+             }
 
-            if (entries.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">沒有找到符合條件的記錄</td></tr>';
+             entries.forEach(entry => {
+                 const row = document.createElement('tr');
+
+                 row.innerHTML = `
+                     <td>${entry.reagent_name}</td>
+                     <td><strong>${entry.reagent_batch_number}</strong></td>
+                     <td>${entry.expiry_date}</td>
+                     <td><span class="badge bg-primary">${entry.quantity}</span></td>
+                     <td>${entry.unit}</td>
+                     <td>${entry.supplier}</td>
+                     <td>${entry.entry_date}</td>
+                     <td>
+                         <button class="btn btn-success btn-sm" onclick="directPrint(${entry.id}, ${entry.quantity})">
+                             <i class="fas fa-print me-1"></i>列印
+                         </button>
+                     </td>
+                 `;
+                 tbody.appendChild(row);
+             });
+         }
+
+        // 搜尋功能
+        function searchEntries() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                // 如果沒有關鍵字，顯示所有記錄
+                displayEntries(allEntries);
                 return;
             }
 
-            // 使用 for 循環代替 forEach
-            for (let i = 0; i < entries.length; i++) {
-                const entry = entries[i];
-                const row = document.createElement('tr');
+            // 在現有記錄中搜尋
+            const searchResults = allEntries.filter(entry => 
+                entry.reagent_name.toLowerCase().includes(query.toLowerCase()) ||
+                entry.reagent_batch_number.toLowerCase().includes(query.toLowerCase()) ||
+                entry.supplier.toLowerCase().includes(query.toLowerCase())
+            );
 
-                row.innerHTML = `
-                    <td>${entry.reagent_name}</td>
-                    <td><strong>${entry.reagent_batch_number || ''}</strong></td>
-                    <td>${entry.expiry_date || '無資料'}</td>
-                    <td><span class="badge bg-primary">${entry.quantity}</span></td>
-                    <td>${entry.unit || '個'}</td>
-                    <td>${entry.supplier || '無資料'}</td>
-                    <td>${entry.entry_date}</td>
-                    <td>
-                        <button class="btn btn-success btn-sm" onclick="directPrint(${entry.id}, ${entry.quantity})">
-                            <i class="fas fa-print me-1"></i>列印
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            }
+            displayEntries(searchResults);
         }
+
+
 
         // 直接列印到預設印表機
         async function directPrint(entryId, defaultQuantity) {
@@ -547,483 +499,264 @@
             modal.show();
         }
 
-        // 表單提交處理
-        document.getElementById('entryForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+         // 表單提交處理
+         document.getElementById('entryForm').addEventListener('submit', async function(e) {
+             e.preventDefault();
 
-            // 驗證表單
-            if (!validateForm()) {
-                return;
-            }
+             // 驗證表單
+             if (!validateForm()) {
+                 return;
+             }
 
-            const formData = {
-                reagent_name: document.getElementById('reagentName').value,
-                reagent_batch_number: document.getElementById('reagentBatchNumber').value,
-                expiry_date: document.getElementById('expiryDate').value,
-                quantity: parseInt(document.getElementById('quantity').value),
-                unit: document.getElementById('unit').value === '其他' ? document.getElementById('unitOther').value : document.getElementById('unit').value,
-                supplier: document.getElementById('supplier').value === '其他' ? document.getElementById('supplierOther').value : document.getElementById('supplier').value
-            };
+             const formData = {
+                 reagent_name: document.getElementById('reagentName').value,
+                 reagent_batch_number: document.getElementById('reagentBatchNumber').value,
+                 expiry_date: document.getElementById('expiryDate').value,
+                 quantity: parseInt(document.getElementById('quantity').value),
+                 unit: document.getElementById('unit').value === '其他' ? document.getElementById('unitOther').value : document.getElementById('unit').value,
+                 supplier: document.getElementById('supplier').value === '其他' ? document.getElementById('supplierOther').value : document.getElementById('supplier').value
+             };
 
-            try {
-                const response = await fetch('/api/entries', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
-                });
+             try {
+                 const response = await fetch('/api/entries', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify(formData)
+                 });
 
-                const result = await response.json();
-                
-                if (result.success) {
-                    // 一般入庫成功
-                    
-                    // 清空表單
-                    document.getElementById('entryForm').reset();
-                    
-                    // 重新載入記錄
-                    loadEntries();
-                } else if (result.is_new_batch) {
-                    // 檢測到新批號，顯示確認模態框
-                    showNewBatchModal(result.message, result.data);
-                } else {
-                    // 其他錯誤
-                    alert('操作失敗：' + (result.message || '未知錯誤'));
-                }
-            } catch (error) {
-                console.error('儲存失敗:', error);
-                alert('儲存失敗，請重試');
-            }
-        });
+                 const result = await response.json();
+                 
+                                   if (result.success) {
+                      // 一般入庫成功
+                      
+                      // 清空表單
+                      document.getElementById('entryForm').reset();
+                      
+                      // 重新載入記錄
+                      loadEntries();
+                  } else if (result.is_new_batch) {
+                     // 檢測到新批號，顯示確認模態框
+                     showNewBatchModal(result.message, result.data);
+                 } else {
+                     // 其他錯誤
+                     alert('操作失敗：' + (result.message || '未知錯誤'));
+                 }
+             } catch (error) {
+                 console.error('儲存失敗:', error);
+                 alert('儲存失敗，請重試');
+             }
+         });
 
-        // 顯示新批號確認模態框
-        function showNewBatchModal(message, data) {
-            // 設置模態框內容
-            document.getElementById('newBatchMessage').textContent = message;
-            document.getElementById('previewReagentName').textContent = data.reagent_name;
-            document.getElementById('previewBatchNumber').textContent = data.reagent_batch_number;
-            document.getElementById('previewExpiryDate').textContent = data.expiry_date;
-            document.getElementById('previewQuantity').textContent = data.quantity;
-            document.getElementById('previewUnit').textContent = data.unit;
-            document.getElementById('previewSupplier').textContent = data.supplier;
-            
-            // 儲存資料供確認時使用
-            window.pendingEntryData = data;
-            
-            // 顯示模態框
-            const modal = new bootstrap.Modal(document.getElementById('newBatchModal'));
-            modal.show();
-        }
+         // 顯示新批號確認模態框
+         function showNewBatchModal(message, data) {
+             // 設置模態框內容
+             document.getElementById('newBatchMessage').textContent = message;
+             document.getElementById('previewReagentName').textContent = data.reagent_name;
+             document.getElementById('previewBatchNumber').textContent = data.reagent_batch_number;
+             document.getElementById('previewExpiryDate').textContent = data.expiry_date;
+             document.getElementById('previewQuantity').textContent = data.quantity;
+             document.getElementById('previewUnit').textContent = data.unit;
+             document.getElementById('previewSupplier').textContent = data.supplier;
+             
+             // 儲存資料供確認時使用
+             window.pendingEntryData = data;
+             
+             // 顯示模態框
+             const modal = new bootstrap.Modal(document.getElementById('newBatchModal'));
+             modal.show();
+         }
 
-        // 確認新批號入庫
-        async function confirmNewBatchEntry() {
-            if (!window.pendingEntryData) {
-                alert('沒有待確認的入庫資料');
-                return;
-            }
+         // 確認新批號入庫
+         async function confirmNewBatchEntry() {
+             if (!window.pendingEntryData) {
+                 alert('沒有待確認的入庫資料');
+                 return;
+             }
 
-            try {
-                const response = await fetch('/api/confirm-entry', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(window.pendingEntryData)
-                });
+             try {
+                 const response = await fetch('/api/confirm-entry', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify(window.pendingEntryData)
+                 });
 
-                const result = await response.json();
-                
-                if (result.success) {
-                    // 入庫成功
-                    
-                    // 清空表單
-                    document.getElementById('entryForm').reset();
-                    
-                    // 重新載入記錄
-                    loadEntries();
-                    
-                    // 關閉新批號確認模態框
-                    bootstrap.Modal.getInstance(document.getElementById('newBatchModal')).hide();
-                    
-                    // 清除待確認資料
-                    window.pendingEntryData = null;
-                } else {
-                    alert('確認入庫失敗：' + (result.message || '未知錯誤'));
-                }
-            } catch (error) {
-                console.error('確認入庫失敗:', error);
-                alert('確認入庫失敗，請重試');
-            }
-        }
+                 const result = await response.json();
+                 
+                                   if (result.success) {
+                      // 入庫成功
+                      
+                      // 清空表單
+                      document.getElementById('entryForm').reset();
+                      
+                      // 重新載入記錄
+                      loadEntries();
+                      
+                      // 關閉新批號確認模態框
+                      bootstrap.Modal.getInstance(document.getElementById('newBatchModal')).hide();
+                      
+                      // 清除待確認資料
+                      window.pendingEntryData = null;
+                  } else {
+                     alert('確認入庫失敗：' + (result.message || '未知錯誤'));
+                 }
+             } catch (error) {
+                 console.error('確認入庫失敗:', error);
+                 alert('確認入庫失敗，請重試');
+             }
+         }
 
-        // 處理單位選擇變更
-        function handleUnitChange() {
-            const unitSelect = document.getElementById('unit');
-            const unitOther = document.getElementById('unitOther');
-            
-            if (unitSelect.value === '其他') {
-                unitOther.style.display = 'block';
-                unitOther.required = true;
-                unitOther.focus();
-            } else {
-                unitOther.style.display = 'none';
-                unitOther.required = false;
-                unitOther.value = '';
-            }
-        }
+         // 搜尋框按Enter鍵觸發搜尋
+         document.getElementById('searchInput').addEventListener('keypress', function(e) {
+             if (e.key === 'Enter') {
+                 searchEntries();
+             }
+         });
 
-        // 處理供應商選擇變更
-        function handleSupplierChange() {
-            const supplierSelect = document.getElementById('supplier');
-            const supplierOther = document.getElementById('supplierOther');
-            
-            if (supplierSelect.value === '其他') {
-                supplierOther.style.display = 'block';
-                supplierOther.required = true;
-                supplierOther.focus();
-            } else {
-                supplierOther.style.display = 'none';
-                supplierOther.required = false;
-                supplierOther.value = '';
-            }
-        }
+         // 處理單位選擇變更
+         function handleUnitChange() {
+             const unitSelect = document.getElementById('unit');
+             const unitOther = document.getElementById('unitOther');
+             
+             if (unitSelect.value === '其他') {
+                 unitOther.style.display = 'block';
+                 unitOther.required = true;
+                 unitOther.focus();
+             } else {
+                 unitOther.style.display = 'none';
+                 unitOther.required = false;
+                 unitOther.value = '';
+             }
+         }
 
-        // 表單驗證
-        function validateForm() {
-            const unitSelect = document.getElementById('unit');
-            const unitOther = document.getElementById('unitOther');
-            const supplierSelect = document.getElementById('supplier');
-            const supplierOther = document.getElementById('supplierOther');
+         // 處理供應商選擇變更
+         function handleSupplierChange() {
+             const supplierSelect = document.getElementById('supplier');
+             const supplierOther = document.getElementById('supplierOther');
+             
+             if (supplierSelect.value === '其他') {
+                 supplierOther.style.display = 'block';
+                 supplierOther.required = true;
+                 supplierOther.focus();
+             } else {
+                 supplierOther.style.display = 'none';
+                 supplierOther.required = false;
+                 supplierOther.value = '';
+             }
+         }
 
-            // 驗證單位
-            if (unitSelect.value === '其他' && !unitOther.value.trim()) {
-                alert('請輸入其他單位');
-                unitOther.focus();
-                return false;
-            }
+         // 表單驗證
+         function validateForm() {
+             const unitSelect = document.getElementById('unit');
+             const unitOther = document.getElementById('unitOther');
+             const supplierSelect = document.getElementById('supplier');
+             const supplierOther = document.getElementById('supplierOther');
 
-            // 驗證供應商
-            if (supplierSelect.value === '其他' && !supplierOther.value.trim()) {
-                alert('請輸入其他供應商');
-                supplierOther.focus();
-                return false;
-            }
+             // 驗證單位
+             if (unitSelect.value === '其他' && !unitOther.value.trim()) {
+                 alert('請輸入其他單位');
+                 unitOther.focus();
+                 return false;
+             }
 
-            return true;
-        }
+             // 驗證供應商
+             if (supplierSelect.value === '其他' && !supplierOther.value.trim()) {
+                 alert('請輸入其他供應商');
+                 supplierOther.focus();
+                 return false;
+             }
 
-        // 套用篩選器
-        function applyFilters() {
-            const filterName = document.getElementById('filterName').value.trim();
-            const filterSupplier = document.getElementById('filterSupplier').value;
-            const filterDateFrom = document.getElementById('filterDateFrom').value;
-            const filterDateTo = document.getElementById('filterDateTo').value;
+             return true;
+         }
 
-            let filteredEntries = allEntries.filter(entry => {
-                // 名稱篩選
-                if (filterName && !entry.reagent_name.toLowerCase().includes(filterName.toLowerCase())) {
-                    return false;
-                }
+         // 套用篩選器
+         function applyFilters() {
+             const filterName = document.getElementById('filterName').value.trim();
+             const filterSupplier = document.getElementById('filterSupplier').value;
+             const filterDateFrom = document.getElementById('filterDateFrom').value;
+             const filterDateTo = document.getElementById('filterDateTo').value;
 
-                // 供應商篩選
-                if (filterSupplier && entry.supplier !== filterSupplier) {
-                    return false;
-                }
+             let filteredEntries = allEntries.filter(entry => {
+                 // 名稱篩選
+                 if (filterName && !entry.reagent_name.toLowerCase().includes(filterName.toLowerCase())) {
+                     return false;
+                 }
 
-                // 日期範圍篩選
-                if (filterDateFrom || filterDateTo) {
-                    const entryDate = new Date(entry.entry_date.split(' ')[0]); // 只取日期部分
-                    
-                    if (filterDateFrom && entryDate < new Date(filterDateFrom)) {
-                        return false;
-                    }
-                    
-                    if (filterDateTo && entryDate > new Date(filterDateTo)) {
-                        return false;
-                    }
-                }
+                 // 供應商篩選
+                 if (filterSupplier && entry.supplier !== filterSupplier) {
+                     return false;
+                 }
 
-                return true;
-            });
+                 // 日期範圍篩選
+                 if (filterDateFrom || filterDateTo) {
+                     const entryDate = new Date(entry.entry_date.split(' ')[0]); // 只取日期部分
+                     
+                     if (filterDateFrom && entryDate < new Date(filterDateFrom)) {
+                         return false;
+                     }
+                     
+                     if (filterDateTo && entryDate > new Date(filterDateTo)) {
+                         return false;
+                     }
+                 }
 
-            displayEntries(filteredEntries);
-        }
+                 return true;
+             });
 
-        // 清除篩選器
-        function clearFilters() {
-            document.getElementById('filterName').value = '';
-            document.getElementById('filterSupplier').value = '';
-            document.getElementById('filterDateFrom').value = '';
-            document.getElementById('filterDateTo').value = '';
+             displayEntries(filteredEntries);
+         }
 
-            // 重新顯示所有記錄
-            displayEntries(allEntries);
-        }
+         // 清除篩選器
+         function clearFilters() {
+             document.getElementById('filterName').value = '';
+             document.getElementById('filterSupplier').value = '';
+             document.getElementById('filterDateFrom').value = '';
+             document.getElementById('filterDateTo').value = '';
+             document.getElementById('searchInput').value = '';
+             
+             // 重新顯示所有記錄
+             displayEntries(allEntries);
+         }
 
-        // 匯出CSV功能
-        function exportToCSV() {
-            const currentEntries = allEntries;
-            if (currentEntries.length === 0) {
-                alert('沒有資料可以匯出');
-                return;
-            }
+         // 匯出CSV功能
+         function exportToCSV() {
+             const currentEntries = allEntries;
+             if (currentEntries.length === 0) {
+                 alert('沒有資料可以匯出');
+                 return;
+             }
 
-            // CSV標題
-            const headers = ['試劑名稱', '批號', '穩定效期', '數量', '單位', '供應商', '入庫日期'];
-            
-            // CSV內容
-            const csvContent = [
-                headers.join(','),
-                ...currentEntries.map(entry => [
-                    entry.reagent_name,
-                    entry.reagent_batch_number,
-                    entry.expiry_date || '無資料',
-                    entry.quantity,
-                    entry.unit || '個',
-                    entry.supplier || '無資料',
-                    entry.entry_date
-                ].join(','))
-            ].join('\n');
+             // CSV標題
+             const headers = ['試劑名稱', '試劑批號', '穩定效期', '數量', '單位', '供應商', '入庫日期'];
+             
+             // CSV內容
+             const csvContent = [
+                 headers.join(','),
+                 ...currentEntries.map(entry => [
+                     entry.reagent_name,
+                     entry.reagent_batch_number,
+                     entry.expiry_date,
+                     entry.quantity,
+                     entry.unit,
+                     entry.supplier,
+                     entry.entry_date
+                 ].join(','))
+             ].join('\n');
 
-            // 創建下載連結
-            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `試劑入庫紀錄_${new Date().toISOString().split('T')[0]}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // 顯示匯入模態框
-        function showImportModal() {
-            // 重置模態框狀態
-            document.getElementById('importFile').value = '';
-            document.getElementById('importPreview').style.display = 'none';
-            document.getElementById('importButton').disabled = true;
-            document.getElementById('importValidation').style.display = 'none';
-            importData = [];
-            importValidationErrors = [];
-            
-            // 顯示模態框
-            const modal = new bootstrap.Modal(document.getElementById('importModal'));
-            modal.show();
-        }
-
-        // 下載模板
-        function downloadTemplate() {
-            const templateContent = `試劑名稱,批號,穩定效期,數量,單位,供應商
-AFP,AFP001,2025-12-31,10,支,醫全
-CEA,CEA001,2025-06-30,5,盒,亞培
-PSA,PSA001,2025-09-15,8,瓶,希森美康`;
-            
-            const blob = new Blob(['\ufeff' + templateContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', '試劑匯入模板.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // 處理檔案選擇
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (!file.name.toLowerCase().endsWith('.csv')) {
-                alert('請選擇CSV檔案');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const csvContent = e.target.result;
-                    const lines = csvContent.split('\n');
-                    
-                    // 跳過標題行，解析資料
-                    const data = [];
-                    for (let i = 1; i < lines.length; i++) {
-                        const line = lines[i].trim();
-                        if (line) {
-                            const columns = line.split(',').map(col => col.trim());
-                            if (columns.length >= 6) {
-                                data.push({
-                                    reagent_name: columns[0],
-                                    batch_number: columns[1],
-                                    expiry_date: columns[2] || '',
-                                    quantity: columns[3],
-                                    unit: columns[4] || '個',
-                                    supplier: columns[5] || '其他'
-                                });
-                            }
-                        }
-                    }
-                    
-                    if (data.length === 0) {
-                        alert('CSV檔案中沒有找到有效資料');
-                        return;
-                    }
-                    
-                    // 驗證資料
-                    const validationResult = validateImportData(data);
-                    if (validationResult.isValid) {
-                        importData = data;
-                        showImportPreview(data);
-                        document.getElementById('importButton').disabled = false;
-                    } else {
-                        showValidationErrors(validationResult.errors);
-                    }
-                    
-                } catch (error) {
-                    alert('解析CSV檔案時發生錯誤：' + error.message);
-                }
-            };
-            
-            reader.readAsText(file, 'UTF-8');
-        }
-
-        // 驗證匯入資料
-        function validateImportData(data) {
-            const errors = [];
-            
-            data.forEach((row, index) => {
-                const rowNumber = index + 2; // +2 因為從第2行開始（跳過標題）
-                
-                // 驗證試劑名稱
-                if (!row.reagent_name || row.reagent_name.trim() === '') {
-                    errors.push(`第${rowNumber}行：試劑名稱不能為空`);
-                }
-                
-                // 驗證批號
-                if (!row.batch_number || row.batch_number.trim() === '') {
-                    errors.push(`第${rowNumber}行：批號不能為空`);
-                }
-                
-                // 驗證數量
-                const quantity = parseInt(row.quantity);
-                if (isNaN(quantity) || quantity <= 0) {
-                    errors.push(`第${rowNumber}行：數量必須為正整數`);
-                }
-                
-                // 驗證穩定效期格式
-                if (row.expiry_date && row.expiry_date.trim() !== '') {
-                    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-                    if (!dateRegex.test(row.expiry_date)) {
-                        errors.push(`第${rowNumber}行：穩定效期格式錯誤，應為YYYY-MM-DD`);
-                    }
-                }
-                
-                // 驗證單位
-                const validUnits = ['個', '支', '瓶', '盒', '包', '其他'];
-                if (row.unit && !validUnits.includes(row.unit)) {
-                    errors.push(`第${rowNumber}行：單位不支援，支援的單位：${validUnits.join(', ')}`);
-                }
-                
-                // 驗證供應商
-                const validSuppliers = ['醫全', '亞培', '希森美康', '沃芬', '其他'];
-                if (row.supplier && !validSuppliers.includes(row.supplier)) {
-                    errors.push(`第${rowNumber}行：供應商不支援，支援的供應商：${validSuppliers.join(', ')}`);
-                }
-            });
-            
-            return {
-                isValid: errors.length === 0,
-                errors: errors
-            };
-        }
-
-        // 顯示匯入預覽
-        function showImportPreview(data) {
-            const previewTableBody = document.getElementById('previewTableBody');
-            previewTableBody.innerHTML = '';
-            
-            // 顯示前5筆資料
-            const previewData = data.slice(0, 5);
-            previewData.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.reagent_name}</td>
-                    <td>${row.batch_number}</td>
-                    <td>${row.expiry_date || '無'}</td>
-                    <td>${row.quantity}</td>
-                    <td>${row.unit}</td>
-                    <td>${row.supplier}</td>
-                `;
-                previewTableBody.appendChild(tr);
-            });
-            
-            if (data.length > 5) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td colspan="6" class="text-center text-muted">... 還有 ${data.length - 5} 筆資料</td>`;
-                previewTableBody.appendChild(tr);
-            }
-            
-            document.getElementById('importPreview').style.display = 'block';
-        }
-
-        // 顯示驗證錯誤
-        function showValidationErrors(errors) {
-            const validationDiv = document.getElementById('importValidation');
-            const validationMessage = document.getElementById('validationMessage');
-            
-            validationMessage.innerHTML = errors.join('<br>');
-            validationDiv.style.display = 'block';
-            
-            document.getElementById('importPreview').style.display = 'none';
-            document.getElementById('importButton').disabled = true;
-        }
-
-        // 執行匯入
-        async function importData() {
-            if (importData.length === 0) {
-                alert('沒有資料可以匯入');
-                return;
-            }
-            
-            try {
-                document.getElementById('importButton').disabled = true;
-                document.getElementById('importButton').innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>匯入中...';
-                
-                const response = await fetch('/api/import-entries', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ entries: importData })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // 匯入成功
-                    showSuccessModal(`成功匯入 ${result.imported_count} 筆資料`);
-                    
-                    // 重新載入記錄
-                    loadEntries();
-                    
-                    // 關閉模態框
-                    bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
-                } else {
-                    alert('匯入失敗：' + (result.message || '未知錯誤'));
-                }
-                
-            } catch (error) {
-                console.error('匯入失敗:', error);
-                alert('匯入失敗，請重試');
-            } finally {
-                document.getElementById('importButton').disabled = false;
-                document.getElementById('importButton').innerHTML = '<i class="fas fa-upload me-2"></i>開始匯入';
-            }
-        }
-
-
+             // 創建下載連結
+             const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+             const link = document.createElement('a');
+             const url = URL.createObjectURL(blob);
+             link.setAttribute('href', url);
+             link.setAttribute('download', `試劑入庫紀錄_${new Date().toISOString().split('T')[0]}.csv`);
+             link.style.visibility = 'hidden';
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+         }
     </script>
 </body>
 </html>
