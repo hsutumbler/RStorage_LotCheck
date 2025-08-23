@@ -263,20 +263,11 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="searchInput" class="form-label fw-bold">關鍵字搜尋</label>
-                                    <div class="search-box">
-                                        <input type="text" class="form-control" id="searchInput" placeholder="搜尋試劑名稱、批號...">
-                                        <button class="btn btn-success" onclick="searchEntries()">
-                                            <i class="fas fa-search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-3 d-flex align-items-end">
-                                    <button class="btn btn-primary me-2" onclick="applyFilters()">
+                                <div class="col-12 mb-3 d-flex justify-content-center">
+                                    <button class="btn btn-primary me-3" onclick="applyFilters()">
                                         <i class="fas fa-filter me-2"></i>套用篩選
                                     </button>
-                                    <button class="btn btn-secondary" onclick="clearFilters()">
+                                    <button class="btn btn-primary" onclick="clearFilters()">
                                         <i class="fas fa-times me-2"></i>清除篩選
                                     </button>
                                 </div>
@@ -450,24 +441,7 @@
              });
          }
 
-        // 搜尋功能
-        function searchEntries() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                // 如果沒有關鍵字，顯示所有記錄
-                displayEntries(allEntries);
-                return;
-            }
 
-            // 在現有記錄中搜尋
-            const searchResults = allEntries.filter(entry => 
-                entry.reagent_name.toLowerCase().includes(query.toLowerCase()) ||
-                entry.reagent_batch_number.toLowerCase().includes(query.toLowerCase()) ||
-                entry.supplier.toLowerCase().includes(query.toLowerCase())
-            );
-
-            displayEntries(searchResults);
-        }
 
 
 
@@ -609,12 +583,7 @@
              }
          }
 
-         // 搜尋框按Enter鍵觸發搜尋
-         document.getElementById('searchInput').addEventListener('keypress', function(e) {
-             if (e.key === 'Enter') {
-                 searchEntries();
-             }
-         });
+
 
          // 處理單位選擇變更
          function handleUnitChange() {
@@ -715,7 +684,6 @@
              document.getElementById('filterSupplier').value = '';
              document.getElementById('filterDateFrom').value = '';
              document.getElementById('filterDateTo').value = '';
-             document.getElementById('searchInput').value = '';
              
              // 重新顯示所有記錄
              displayEntries(allEntries);
