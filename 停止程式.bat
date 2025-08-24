@@ -1,6 +1,7 @@
 @echo off
 title 停止試劑入庫管理系統
 color 0C
+chcp 65001 >nul
 
 echo.
 echo  ========================================

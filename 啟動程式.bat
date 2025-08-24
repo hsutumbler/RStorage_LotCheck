@@ -1,10 +1,11 @@
 @echo off
-title 試劑入庫管理系統 - 快速啟動
+title 試劑入庫管理系統
 color 0A
+chcp 65001 >nul
 
 echo.
 echo  ========================================
-echo  試劑入庫管理系統 - 快速啟動
+echo  試劑入庫管理系統
 echo  ========================================
 echo.
 
@@ -13,7 +14,6 @@ python --version >nul 2>&1
 if errorlevel 1 (
     echo [錯誤] 未找到Python，請先安裝Python 3.7+
     echo.
-    echo 請執行 start.bat 來安裝必要套件
     pause
     exit /b 1
 )
@@ -24,7 +24,7 @@ echo.
 REM 檢查必要套件是否已安裝
 python -c "import flask, flask_sqlalchemy, reportlab" >nul 2>&1
 if errorlevel 1 (
-    echo [警告] 必要套件未安裝，正在安裝...
+    echo [安裝] 正在安裝必要套件...
     pip install -r requirements.txt
     echo.
 )
@@ -54,7 +54,7 @@ echo ========================================
 echo.
 echo [提示] 系統正在背景執行中
 echo [提示] 關閉此視窗不會影響系統運行
-echo [提示] 要停止系統，請在終端按 Ctrl+C
+echo [提示] 要停止系統，請使用 停止程式.bat
 echo.
 
 echo 按任意鍵關閉此視窗...

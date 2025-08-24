@@ -1,7 +1,7 @@
 # 試劑入庫管理系統設定檔案
 
 # 資料庫設定
-DATABASE_URI = 'sqlite:///reagent_inventory.db'
+DATABASE_URI = 'sqlite:///simple_inventory.db'
 
 # 伺服器設定
 HOST = '0.0.0.0'  # 監聽所有網路介面
