@@ -220,11 +220,11 @@
                                      </div>
                                  </div>
 
-                                <div class="text-center">
-                                    <button type="submit" class="btn btn-primary btn-lg">
-                                        <i class="fas fa-save me-2"></i>儲存並列印標籤
-                                    </button>
-                                </div>
+                                                               <div class="text-center">
+                                   <button type="submit" class="btn btn-primary btn-lg">
+                                       <i class="fas fa-save me-2"></i>儲存並自動列印標籤
+                                   </button>
+                               </div>
                             </form>
                         </div>
                     </div>
@@ -234,8 +234,11 @@
                 <div class="tab-pane fade" id="search-records" role="tabpanel">
                     <!-- 篩選器區域 -->
                     <div class="card mb-4">
-                        <div class="card-header bg-primary text-white">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-filter me-2"></i>篩選搜尋</h5>
+                            <button class="btn btn-outline-light btn-sm" onclick="switchToSearchTab()" title="重新載入資料">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -281,8 +284,11 @@
                             <h5 class="mb-0"><i class="fas fa-list me-2"></i>入庫紀錄</h5>
                             <div class="d-flex align-items-center">
                                 <span class="badge bg-light text-dark me-3" id="recordCount">共 0 筆記錄</span>
-                                <button class="btn btn-outline-light btn-sm" onclick="exportToCSV()">
+                                <button class="btn btn-outline-light btn-sm me-2" onclick="exportToCSV()">
                                     <i class="fas fa-download me-1"></i>匯出
+                                </button>
+                                <button class="btn btn-outline-light btn-sm" onclick="showImportModal()">
+                                    <i class="fas fa-upload me-1"></i>匯入
                                 </button>
                             </div>
                         </div>
@@ -378,6 +384,61 @@
         </div>
     </div>
 
+    <!-- 匯入CSV模態框 -->
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-upload me-2"></i>匯入CSV檔案
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">匯入說明</h6>
+                        <ul class="mb-0">
+                            <li>請選擇CSV檔案，檔案必須包含以下欄位：試劑名稱、試劑批號、穩定效期、數量、單位、供應商、入庫日期</li>
+                            <li>日期格式支援：YYYY-MM-DD 或 YYYY/MM/DD</li>
+                            <li>入庫日期格式支援：YYYY-MM-DD HH:MM:SS 或 YYYY/MM/DD</li>
+                            <li>如果試劑名稱和批號已存在，系統會更新該筆記錄</li>
+                            <li>支援UTF-8編碼的CSV檔案</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">選擇CSV檔案</label>
+                        <input type="file" class="form-control" id="csvFile" accept=".csv" onchange="validateFile()">
+                        <div class="form-text">支援的檔案格式：CSV</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="downloadTemplate()">
+                            <i class="fas fa-download me-1"></i>下載CSV範本
+                        </button>
+                    </div>
+
+                    <div id="importProgress" class="d-none">
+                        <div class="progress mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                        </div>
+                        <p class="text-center">正在處理檔案，請稍候...</p>
+                    </div>
+
+                    <div id="importResult" class="d-none">
+                        <!-- 匯入結果將在這裡顯示 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="importBtn" onclick="importCSV()" disabled>
+                        <i class="fas fa-upload me-2"></i>開始匯入
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let allEntries = [];
@@ -387,14 +448,56 @@
             loadEntries();
         });
 
-        // 頁籤切換時重新載入資料
-        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
-            tab.addEventListener('shown.bs.tab', function(e) {
+        // 頁籤切換時重新載入資料 - 使用多種方法確保可靠性
+        function setupTabSwitching() {
+            // 方法1: 直接點擊事件
+            document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    const targetId = this.getAttribute('data-bs-target');
+                    console.log('點擊頁籤:', this.id, '目標:', targetId);
+                    
+                    if (targetId === '#search-records') {
+                        console.log('準備載入搜尋頁籤資料');
+                        // 延遲一下確保頁籤切換完成後再載入資料
+                        setTimeout(() => {
+                            loadEntries();
+                        }, 200);
+                    }
+                });
+            });
+
+            // 方法2: Bootstrap頁籤事件
+            document.addEventListener('shown.bs.tab', function(e) {
+                console.log('Bootstrap頁籤事件:', e.target.id);
                 if (e.target.id === 'search-records-tab') {
+                    console.log('Bootstrap: 搜尋頁籤已顯示，載入資料');
                     loadEntries();
                 }
             });
-        });
+
+            // 方法3: 手動頁籤切換函數
+            window.switchToSearchTab = function() {
+                console.log('手動切換到搜尋頁籤');
+                const searchTab = document.getElementById('search-records-tab');
+                const searchContent = document.getElementById('search-records');
+                
+                // 移除所有active類別
+                document.querySelectorAll('.nav-link').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(content => {
+                    content.classList.remove('show', 'active');
+                });
+                
+                // 啟用搜尋頁籤
+                searchTab.classList.add('active');
+                searchContent.classList.add('show', 'active');
+                
+                // 載入資料
+                loadEntries();
+            };
+        }
+
+        // 初始化頁籤切換
+        setupTabSwitching();
 
         // 載入入庫記錄
         async function loadEntries() {
@@ -466,6 +569,32 @@
             }
         }
 
+        // 新增入庫後直接列印標籤（靜默處理，不顯示錯誤給使用者）
+        async function directPrintNewEntry(entryId, quantity) {
+            try {
+                console.log('開始列印新入庫標籤，ID:', entryId, '數量:', quantity);
+                
+                const response = await fetch(`/api/print-direct/${entryId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ quantity: quantity })
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    console.error('列印失敗：', result.message);
+                    // 不顯示錯誤訊息給使用者，避免影響入庫流程
+                } else {
+                    console.log('標籤列印成功');
+                }
+            } catch (error) {
+                console.error('列印過程發生錯誤:', error);
+                // 靜默處理錯誤，不影響入庫成功
+            }
+        }
+
         // 顯示成功提示
         function showSuccessModal(message) {
             document.getElementById('successMessage').textContent = message;
@@ -500,17 +629,24 @@
                      body: JSON.stringify(formData)
                  });
 
-                 const result = await response.json();
-                 
-                                   if (result.success) {
-                      // 一般入庫成功
-                      
-                      // 清空表單
-                      document.getElementById('entryForm').reset();
-                      
-                      // 重新載入記錄
-                      loadEntries();
-                  } else if (result.is_new_batch) {
+                                 const result = await response.json();
+                
+                if (result.success) {
+                    // 一般入庫成功
+                    
+                    // 入庫成功後，直接列印標籤
+                    if (result.entry_id) {
+                        await directPrintNewEntry(result.entry_id, formData.quantity);
+                    }
+                    
+                    // 清空表單
+                    document.getElementById('entryForm').reset();
+                    
+                    // 重新載入記錄
+                    loadEntries();
+                    
+                    // 不顯示成功對話視窗，靜默處理
+                } else if (result.is_new_batch) {
                      // 檢測到新批號，顯示確認模態框
                      showNewBatchModal(result.message, result.data);
                  } else {
@@ -558,23 +694,30 @@
                      body: JSON.stringify(window.pendingEntryData)
                  });
 
-                 const result = await response.json();
-                 
-                                   if (result.success) {
-                      // 入庫成功
-                      
-                      // 清空表單
-                      document.getElementById('entryForm').reset();
-                      
-                      // 重新載入記錄
-                      loadEntries();
-                      
-                      // 關閉新批號確認模態框
-                      bootstrap.Modal.getInstance(document.getElementById('newBatchModal')).hide();
-                      
-                      // 清除待確認資料
-                      window.pendingEntryData = null;
-                  } else {
+                                 const result = await response.json();
+                
+                if (result.success) {
+                    // 入庫成功
+                    
+                    // 入庫成功後，直接列印標籤
+                    if (result.entry_id) {
+                        await directPrintNewEntry(result.entry_id, window.pendingEntryData.quantity);
+                    }
+                    
+                    // 清空表單
+                    document.getElementById('entryForm').reset();
+                    
+                    // 重新載入記錄
+                    loadEntries();
+                    
+                    // 關閉新批號確認模態框
+                    bootstrap.Modal.getInstance(document.getElementById('newBatchModal')).hide();
+                    
+                    // 清除待確認資料
+                    window.pendingEntryData = null;
+                    
+                    // 不顯示成功對話視窗，靜默處理
+                } else {
                      alert('確認入庫失敗：' + (result.message || '未知錯誤'));
                  }
              } catch (error) {
@@ -724,6 +867,165 @@
              document.body.appendChild(link);
              link.click();
              document.body.removeChild(link);
+         }
+
+         // 顯示匯入模態框
+         function showImportModal() {
+             // 重置表單
+             document.getElementById('csvFile').value = '';
+             document.getElementById('importBtn').disabled = true;
+             document.getElementById('importProgress').classList.add('d-none');
+             document.getElementById('importResult').classList.add('d-none');
+             
+             // 顯示模態框
+             const importModal = new bootstrap.Modal(document.getElementById('importModal'));
+             importModal.show();
+         }
+
+         // 驗證檔案
+         function validateFile() {
+             const fileInput = document.getElementById('csvFile');
+             const importBtn = document.getElementById('importBtn');
+             
+             if (fileInput.files.length > 0) {
+                 const file = fileInput.files[0];
+                 
+                 // 檢查檔案類型
+                 if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                     importBtn.disabled = false;
+                 } else {
+                     alert('請選擇CSV檔案');
+                     fileInput.value = '';
+                     importBtn.disabled = true;
+                 }
+             } else {
+                 importBtn.disabled = true;
+             }
+         }
+
+         // 下載CSV範本
+         function downloadTemplate() {
+             const headers = ['試劑名稱', '試劑批號', '穩定效期', '數量', '單位', '供應商', '入庫日期'];
+             const sampleData = [
+                 ['GOT', 'GOT001', '2025-12-31', '10', '組', '亞培', '2025-08-22 09:00:00'],
+                 ['GPT', 'GPT001', '2025-12-31', '5', '組', '羅氏', '2025-08-22 10:00:00']
+             ];
+             
+             const csvContent = [
+                 headers.join(','),
+                 ...sampleData.map(row => row.join(','))
+             ].join('\n');
+             
+             const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+             const link = document.createElement('a');
+             const url = URL.createObjectURL(blob);
+             link.setAttribute('href', url);
+             link.setAttribute('download', '試劑入庫紀錄_CSV範本.csv');
+             link.style.visibility = 'hidden';
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+         }
+
+         // 匯入CSV檔案
+         async function importCSV() {
+             const fileInput = document.getElementById('csvFile');
+             const importBtn = document.getElementById('importBtn');
+             const importProgress = document.getElementById('importProgress');
+             const importResult = document.getElementById('importResult');
+             
+             if (fileInput.files.length === 0) {
+                 alert('請選擇要匯入的CSV檔案');
+                 return;
+             }
+             
+             const file = fileInput.files[0];
+             
+             // 顯示進度條
+             importProgress.classList.remove('d-none');
+             importBtn.disabled = true;
+             
+             try {
+                 // 建立FormData
+                 const formData = new FormData();
+                 formData.append('file', file);
+                 
+                 // 發送請求
+                 const response = await fetch('/api/import-csv', {
+                     method: 'POST',
+                     body: formData
+                 });
+                 
+                 const result = await response.json();
+                 
+                 // 隱藏進度條
+                 importProgress.classList.add('d-none');
+                 
+                 if (result.success) {
+                     // 顯示成功結果
+                     importResult.classList.remove('d-none');
+                     importResult.innerHTML = `
+                         <div class="alert alert-success">
+                             <h6 class="alert-heading">匯入成功！</h6>
+                             <p class="mb-0">${result.message}</p>
+                             <hr>
+                             <p class="mb-0"><strong>成功處理：</strong>${result.success_count} 筆記錄</p>
+                             <p class="mb-0"><strong>失敗記錄：</strong>${result.error_count} 筆</p>
+                         </div>
+                     `;
+                     
+                     // 如果有錯誤，顯示錯誤詳情
+                     if (result.errors && result.errors.length > 0) {
+                         importResult.innerHTML += `
+                             <div class="alert alert-warning">
+                                 <h6 class="alert-heading">錯誤詳情：</h6>
+                                 <ul class="mb-0">
+                                     ${result.errors.map(error => `<li>${error}</li>`).join('')}
+                                 </ul>
+                             </div>
+                         `;
+                     }
+                     
+                     // 重新載入資料
+                     await loadEntries();
+                     
+                     // 3秒後自動隱藏結果
+                     setTimeout(() => {
+                         importResult.classList.add('d-none');
+                     }, 3000);
+                     
+                 } else {
+                     // 顯示錯誤訊息
+                     importResult.classList.remove('d-none');
+                     importResult.innerHTML = `
+                         <div class="alert alert-danger">
+                             <h6 class="alert-heading">匯入失敗</h6>
+                             <p class="mb-0">${result.error}</p>
+                         </div>
+                     `;
+                 }
+                 
+                 // 重新啟用匯入按鈕
+                 importBtn.disabled = false;
+                 
+             } catch (error) {
+                 console.error('匯入失敗:', error);
+                 
+                 // 隱藏進度條
+                 importProgress.classList.add('d-none');
+                 
+                 // 顯示錯誤訊息
+                 importResult.classList.remove('d-none');
+                 importResult.innerHTML = `
+                     <div class="alert alert-danger">
+                         <h6 class="alert-heading">匯入失敗</h6>
+                         <p class="mb-0">網路錯誤或伺服器問題，請稍後再試</p>
+                     </div>
+                 `;
+                 
+                 // 重新啟用匯入按鈕
+                 importBtn.disabled = false;
+             }
          }
     </script>
 </body>

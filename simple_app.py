@@ -114,12 +114,10 @@ def add_entry():
         
         print(f"成功新增記錄: {entry.id}")
         
-        # 生成並列印標籤
-        labels_printed = generate_and_print_labels(entry)
-        
         return jsonify({
             'success': True,
-            'is_new_batch': False
+            'is_new_batch': False,
+            'entry_id': entry.id
         })
         
     except Exception as e:
@@ -152,11 +150,9 @@ def confirm_entry():
         
         print(f"成功新增新批號記錄: {entry.id}")
         
-        # 生成並列印標籤
-        labels_printed = generate_and_print_labels(entry)
-        
         return jsonify({
-            'success': True
+            'success': True,
+            'entry_id': entry.id
         })
         
     except Exception as e:
@@ -217,6 +213,121 @@ def reprint_labels(entry_id):
         print(f"補印標籤失敗: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/import-csv', methods=['POST'])
+def import_csv():
+    """匯入CSV檔案到資料庫"""
+    try:
+        # 檢查是否有檔案上傳
+        if 'file' not in request.files:
+            return jsonify({'error': '沒有選擇檔案'}), 400
+        
+        file = request.files['file']
+        
+        # 檢查檔案名稱
+        if file.filename == '':
+            return jsonify({'error': '沒有選擇檔案'}), 400
+        
+        # 檢查檔案類型
+        if not file.filename.endswith('.csv'):
+            return jsonify({'error': '請選擇CSV檔案'}), 400
+        
+        # 讀取CSV內容
+        import csv
+        import io
+        
+        # 設定UTF-8編碼
+        content = file.read().decode('utf-8-sig')  # 處理BOM
+        csv_reader = csv.DictReader(io.StringIO(content))
+        
+        # 建立資料庫
+        with app.app_context():
+            db.create_all()
+        
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        # 處理每一行資料
+        for row_num, row in enumerate(csv_reader, start=2):  # 從第2行開始（第1行是標題）
+            try:
+                # 檢查必要欄位
+                required_fields = ['試劑名稱', '試劑批號', '穩定效期', '數量', '單位', '供應商', '入庫日期']
+                for field in required_fields:
+                    if not row.get(field) or not row[field].strip():
+                        raise ValueError(f'欄位 "{field}" 不能為空')
+                
+                # 解析日期
+                try:
+                    expiry_date = datetime.strptime(row['穩定效期'].strip(), '%Y-%m-%d').date()
+                    entry_date = datetime.strptime(row['入庫日期'].strip(), '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    # 嘗試其他日期格式
+                    try:
+                        expiry_date = datetime.strptime(row['穩定效期'].strip(), '%Y/%m/%d').date()
+                        entry_date = datetime.strptime(row['入庫日期'].strip(), '%Y/%m/%d').replace(hour=0, minute=0, second=0)
+                    except ValueError:
+                        raise ValueError(f'日期格式錯誤: 穩定效期="{row["穩定效期"]}", 入庫日期="{row["入庫日期"]}"')
+                
+                # 解析數量
+                try:
+                    quantity = int(row['數量'].strip())
+                    if quantity <= 0:
+                        raise ValueError('數量必須大於0')
+                except ValueError:
+                    raise ValueError(f'數量格式錯誤: "{row["數量"]}"')
+                
+                # 檢查是否已存在相同名稱和批號的記錄
+                existing_entry = ReagentEntry.query.filter_by(
+                    reagent_name=row['試劑名稱'].strip(),
+                    reagent_batch_number=row['試劑批號'].strip()
+                ).first()
+                
+                if existing_entry:
+                    # 更新現有記錄
+                    existing_entry.expiry_date = expiry_date
+                    existing_entry.quantity = quantity
+                    existing_entry.unit = row['單位'].strip()
+                    existing_entry.supplier = row['供應商'].strip()
+                    existing_entry.entry_date = entry_date
+                    db.session.commit()
+                    success_count += 1
+                else:
+                    # 新增新記錄
+                    new_entry = ReagentEntry(
+                        reagent_name=row['試劑名稱'].strip(),
+                        reagent_batch_number=row['試劑批號'].strip(),
+                        expiry_date=expiry_date,
+                        quantity=quantity,
+                        unit=row['單位'].strip(),
+                        supplier=row['供應商'].strip(),
+                        entry_date=entry_date
+                    )
+                    db.session.add(new_entry)
+                    db.session.commit()
+                    success_count += 1
+                
+            except Exception as e:
+                error_count += 1
+                errors.append(f'第{row_num}行: {str(e)}')
+                # 繼續處理下一行，不中斷整個匯入過程
+        
+        # 提交所有變更
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'匯入完成！成功處理 {success_count} 筆記錄，失敗 {error_count} 筆',
+            'success_count': success_count,
+            'error_count': error_count,
+            'errors': errors
+        })
+        
+    except Exception as e:
+        print(f"匯入CSV失敗: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'匯入失敗: {str(e)}'}), 500
+
 def get_chinese_font():
     """獲取可用的中文字體"""
     try:
@@ -266,7 +377,7 @@ def generate_and_print_labels(entry, quantity=None):
         # 試劑名稱和批號
         c.setFont(font_name, 8)
         c.drawString(2*mm, 25*mm, f"名稱：{entry.reagent_name}")
-        c.drawString(25*mm, 25*mm, f"批號{entry.reagent_batch_number}")
+        c.drawString(25*mm, 25*mm, f"批號：{entry.reagent_batch_number}")
         
         # 穩定效期
         c.drawString(2*mm, 20*mm, f"穩定效期：{entry.expiry_date.strftime('%Y/%m/%d')}")
@@ -354,7 +465,7 @@ def print_direct(entry_id):
             # 試劑名稱和批號
             c.setFont(font_name, 8)
             c.drawString(2*mm, 25*mm, f"名稱：{entry.reagent_name}")
-            c.drawString(25*mm, 25*mm, f"批號{entry.reagent_batch_number}")
+            c.drawString(25*mm, 25*mm, f"批號：{entry.reagent_batch_number}")
             
             # 穩定效期
             c.drawString(2*mm, 20*mm, f"穩定效期：{entry.expiry_date.strftime('%Y/%m/%d')}")
@@ -444,7 +555,7 @@ def preview_label():
         # 試劑名稱和批號
         c.setFont(font_name, 8)
         c.drawString(2*mm, 25*mm, f"名稱：{mock_entry.reagent_name}")
-        c.drawString(25*mm, 25*mm, f"批號{mock_entry.reagent_batch_number}")
+        c.drawString(25*mm, 25*mm, f"批號：{mock_entry.reagent_batch_number}")
         
         # 穩定效期
         c.drawString(2*mm, 20*mm, f"穩定效期：{mock_entry.expiry_date.strftime('%Y/%m/%d')}")
