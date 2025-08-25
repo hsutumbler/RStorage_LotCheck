@@ -136,6 +136,78 @@
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
+        
+        /* 自動完成樣式 */
+        .suggestion-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .suggestion-item:hover {
+            background-color: #f8f9fa !important;
+        }
+        
+        .suggestion-item.bg-primary:hover {
+            background-color: #0056b3 !important;
+        }
+        
+        #reagentSuggestions {
+            border-top: none !important;
+            border-radius: 0 0 0.375rem 0.375rem !important;
+            border-color: #dee2e6;
+        }
+        
+        #reagentName:focus + #reagentSuggestions {
+            border-color: #86b7fe;
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 智能表單填充樣式 */
+        .auto-filled {
+            background-color: #e8f5e8 !important;
+            border-color: #28a745 !important;
+        }
+
+        .auto-suggested {
+            background-color: #fff3cd !important;
+            border-color: #ffc107 !important;
+        }
+
+        input[readonly].auto-filled {
+            background-color: #e8f5e8 !important;
+            cursor: not-allowed;
+        }
+
+        .auto-fill-notification {
+            margin-bottom: 20px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        /* 批號建議框樣式 */
+        #batchSuggestions {
+            border-top: none !important;
+            border-radius: 0 0 0.375rem 0.375rem !important;
+            border-color: #dee2e6;
+        }
+
+        #reagentBatchNumber:focus + #batchSuggestions {
+            border-color: #86b7fe;
+        }
+
+        #batchSuggestions .suggestion-item {
+            border-color: #dee2e6;
+        }
+
+        #batchSuggestions .suggestion-item:hover {
+            background-color: #f8f9fa !important;
+        }
+
+        #batchSuggestions .suggestion-item.bg-primary:hover {
+            background-color: #0056b3 !important;
+        }
 
     </style>
 </head>
@@ -176,12 +248,24 @@
                                  <div class="row">
                                      <div class="col-md-6 mb-3">
                                          <label for="reagentName" class="form-label fw-bold">試劑名稱 *</label>
-                                         <input type="text" class="form-control" id="reagentName" required>
+                                         <div class="position-relative">
+                                             <input type="text" class="form-control" id="reagentName" required 
+                                                    autocomplete="off" placeholder="輸入試劑名稱...">
+                                             <div id="reagentSuggestions" class="position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-sm" 
+                                                  style="display: none; z-index: 1000; max-height: 200px; overflow-y: auto;">
+                                             </div>
+                                         </div>
                                      </div>
-                                     <div class="col-md-6 mb-3">
-                                         <label for="reagentBatchNumber" class="form-label fw-bold">試劑批號 *</label>
-                                         <input type="text" class="form-control" id="reagentBatchNumber" required>
-                                     </div>
+                                                                         <div class="col-md-6 mb-3">
+                                        <label for="reagentBatchNumber" class="form-label fw-bold">試劑批號 *</label>
+                                        <div class="position-relative">
+                                            <input type="text" class="form-control" id="reagentBatchNumber" required
+                                                   autocomplete="off" placeholder="輸入試劑批號...">
+                                            <div id="batchSuggestions" class="position-absolute w-100 bg-white border border-top-0 rounded-bottom shadow-sm" 
+                                                 style="display: none; z-index: 999; max-height: 150px; overflow-y: auto;">
+                                            </div>
+                                        </div>
+                                    </div>
                                  </div>
                                  <div class="row">
                                      <div class="col-md-6 mb-3">
@@ -446,7 +530,487 @@
         // 頁面載入時獲取所有記錄
         document.addEventListener('DOMContentLoaded', function() {
             loadEntries();
+            initializeAutocomplete();
         });
+
+        // 自動完成功能變數
+        let currentSuggestions = [];
+        let selectedSuggestionIndex = -1;
+        let suggestionTimeout;
+        
+        // 批號自動完成變數
+        let currentBatchSuggestions = [];
+        let selectedBatchSuggestionIndex = -1;
+        let batchSuggestionTimeout;
+
+        // 初始化自動完成功能
+        function initializeAutocomplete() {
+            const reagentInput = document.getElementById('reagentName');
+            const suggestionsDiv = document.getElementById('reagentSuggestions');
+            
+            if (!reagentInput || !suggestionsDiv) {
+                console.error('找不到試劑名稱輸入欄位或建議區域');
+                return;
+            }
+            
+            // 輸入事件
+            reagentInput.addEventListener('input', function(e) {
+                const query = e.target.value.trim();
+                
+                // 清除之前的延遲
+                clearTimeout(suggestionTimeout);
+                
+                if (query.length === 0) {
+                    hideSuggestions();
+                    return;
+                }
+                
+                // 延遲搜尋，避免過於頻繁的請求
+                suggestionTimeout = setTimeout(() => {
+                    fetchSuggestions(query);
+                }, 300);
+            });
+            
+            // 鍵盤導航
+            reagentInput.addEventListener('keydown', function(e) {
+                const suggestionsDiv = document.getElementById('reagentSuggestions');
+                const isVisible = suggestionsDiv.style.display !== 'none';
+                
+                if (!isVisible) return;
+                
+                switch(e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, currentSuggestions.length - 1);
+                        updateSuggestionSelection();
+                        break;
+                        
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
+                        updateSuggestionSelection();
+                        break;
+                        
+                    case 'Enter':
+                        e.preventDefault();
+                        if (selectedSuggestionIndex >= 0) {
+                            selectSuggestion(currentSuggestions[selectedSuggestionIndex]);
+                        }
+                        break;
+                        
+                    case 'Escape':
+                        e.preventDefault();
+                        hideSuggestions();
+                        break;
+                }
+            });
+            
+            // 失去焦點時隱藏建議
+            reagentInput.addEventListener('blur', function() {
+                // 延遲隱藏，讓點擊事件有時間觸發
+                setTimeout(hideSuggestions, 200);
+            });
+            
+            // 新增：試劑名稱變更時自動填充供應商
+            reagentInput.addEventListener('change', function(e) {
+                const reagentName = e.target.value.trim();
+                if (reagentName) {
+                    loadReagentSupplier(reagentName);
+                }
+            });
+            
+            // 新增：初始化批號自動完成
+            initializeBatchAutocomplete();
+        }
+
+        // 初始化批號自動完成功能
+        function initializeBatchAutocomplete() {
+            const batchInput = document.getElementById('reagentBatchNumber');
+            const batchSuggestionsDiv = document.getElementById('batchSuggestions');
+            
+            if (!batchInput || !batchSuggestionsDiv) {
+                console.error('找不到批號輸入欄位或建議區域');
+                return;
+            }
+            
+            // 批號輸入事件
+            batchInput.addEventListener('input', function(e) {
+                const query = e.target.value.trim();
+                const reagentName = document.getElementById('reagentName').value.trim();
+                
+                clearTimeout(batchSuggestionTimeout);
+                
+                if (query.length === 0 || !reagentName) {
+                    hideBatchSuggestions();
+                    clearExpiryDate();
+                    return;
+                }
+                
+                batchSuggestionTimeout = setTimeout(() => {
+                    fetchBatchSuggestions(reagentName, query);
+                }, 300);
+            });
+            
+            // 批號鍵盤事件
+            batchInput.addEventListener('keydown', function(e) {
+                if (currentBatchSuggestions.length === 0) return;
+                
+                switch (e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        selectedBatchSuggestionIndex = Math.min(selectedBatchSuggestionIndex + 1, currentBatchSuggestions.length - 1);
+                        updateBatchSuggestionSelection();
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        selectedBatchSuggestionIndex = Math.max(selectedBatchSuggestionIndex - 1, -1);
+                        updateBatchSuggestionSelection();
+                        break;
+                    case 'Enter':
+                        if (selectedBatchSuggestionIndex >= 0) {
+                            e.preventDefault();
+                            selectBatchSuggestion(currentBatchSuggestions[selectedBatchSuggestionIndex].batch_number);
+                        }
+                        break;
+                    case 'Escape':
+                        e.preventDefault();
+                        hideBatchSuggestions();
+                        break;
+                }
+            });
+            
+            // 批號變更時載入效期
+            batchInput.addEventListener('change', function(e) {
+                const batchNumber = e.target.value.trim();
+                const reagentName = document.getElementById('reagentName').value.trim();
+                
+                if (batchNumber && reagentName) {
+                    loadBatchExpiry(reagentName, batchNumber);
+                }
+            });
+            
+            // 失去焦點時隱藏批號建議
+            batchInput.addEventListener('blur', function() {
+                setTimeout(hideBatchSuggestions, 200);
+            });
+        }
+
+        // 獲取建議
+        async function fetchSuggestions(query) {
+            try {
+                const response = await fetch(`/api/reagent-suggestions?q=${encodeURIComponent(query)}`);
+                const suggestions = await response.json();
+                
+                currentSuggestions = suggestions;
+                selectedSuggestionIndex = -1;
+                
+                displaySuggestions(suggestions);
+            } catch (error) {
+                console.error('獲取建議失敗:', error);
+                hideSuggestions();
+            }
+        }
+
+        // 顯示建議
+        function displaySuggestions(suggestions) {
+            const suggestionsDiv = document.getElementById('reagentSuggestions');
+            
+            if (suggestions.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            const html = suggestions.map((suggestion, index) => `
+                <div class="suggestion-item p-2 border-bottom cursor-pointer" 
+                     data-index="${index}" 
+                     onclick="selectSuggestion('${suggestion.replace(/'/g, "\\'")}')"
+                     onmouseenter="highlightSuggestion(${index})">
+                    <i class="fas fa-database text-success me-2"></i>${suggestion}
+                </div>
+            `).join('');
+            
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.style.display = 'block';
+        }
+
+        // 更新選擇的建議高亮
+        function updateSuggestionSelection() {
+            const items = document.querySelectorAll('.suggestion-item');
+            
+            items.forEach((item, index) => {
+                if (index === selectedSuggestionIndex) {
+                    item.classList.add('bg-primary', 'text-white');
+                } else {
+                    item.classList.remove('bg-primary', 'text-white');
+                }
+            });
+        }
+
+        // 鼠標惸停高亮
+        function highlightSuggestion(index) {
+            selectedSuggestionIndex = index;
+            updateSuggestionSelection();
+        }
+
+        // 選擇建議
+        function selectSuggestion(suggestion) {
+            document.getElementById('reagentName').value = suggestion;
+            hideSuggestions();
+            
+            // 觸發 change 事件
+            document.getElementById('reagentName').dispatchEvent(new Event('change'));
+        }
+
+        // 隱藏建議
+        function hideSuggestions() {
+            const suggestionsDiv = document.getElementById('reagentSuggestions');
+            if (suggestionsDiv) {
+                suggestionsDiv.style.display = 'none';
+            }
+            currentSuggestions = [];
+            selectedSuggestionIndex = -1;
+        }
+
+        // ========== 智能表單填充功能 ==========
+
+        // 載入試劑對應的供應商和單位
+        async function loadReagentSupplier(reagentName) {
+            try {
+                const response = await fetch(`/api/reagent-supplier?name=${encodeURIComponent(reagentName)}`);
+                const data = await response.json();
+                
+                if (data.found) {
+                    let autoFillMessages = [];
+                    
+                    // 自動填入供應商
+                    if (data.supplier) {
+                        const supplierField = document.getElementById('supplier');
+                        
+                        // 只在欄位為空時自動填入
+                        if (!supplierField.value) {
+                            supplierField.value = data.supplier;
+                            supplierField.classList.add('auto-filled');
+                            
+                            // 如果是"其他"選項，需要觸發變更
+                            if (data.supplier === '其他') {
+                                handleSupplierChange();
+                            }
+                            
+                            autoFillMessages.push(`供應商: ${data.supplier} (使用 ${data.supplier_usage_count} 次)`);
+                        }
+                    }
+                    
+                    // 自動填入單位
+                    if (data.unit) {
+                        const unitField = document.getElementById('unit');
+                        
+                        // 只在欄位為空時自動填入
+                        if (!unitField.value) {
+                            unitField.value = data.unit;
+                            unitField.classList.add('auto-filled');
+                            
+                            // 如果是"其他"選項，需要觸發變更
+                            if (data.unit === '其他') {
+                                handleUnitChange();
+                            }
+                            
+                            autoFillMessages.push(`單位: ${data.unit} (使用 ${data.unit_usage_count} 次)`);
+                        }
+                    }
+                    
+                    // 顯示綜合通知
+                    if (autoFillMessages.length > 0) {
+                        showAutoFillNotification(`✨ 已自動填入 ${autoFillMessages.join('、')}`);
+                    }
+                }
+            } catch (error) {
+                console.error('載入試劑供應商和單位失敗:', error);
+            }
+        }
+
+        // 載入批號對應的效期
+        async function loadBatchExpiry(reagentName, batchNumber) {
+            try {
+                const response = await fetch(`/api/batch-expiry?name=${encodeURIComponent(reagentName)}&batch=${encodeURIComponent(batchNumber)}`);
+                const data = await response.json();
+                
+                const expiryField = document.getElementById('expiryDate');
+                
+                if (data.found && !data.is_new_batch) {
+                    // 已知批號 - 自動填入效期
+                    expiryField.value = data.expiry_date;
+                    expiryField.classList.add('auto-filled');
+                    expiryField.readOnly = true; // 鎖定欄位，因為這是歷史資料
+                    
+                    showAutoFillNotification(`🎯 已載入批號 "${batchNumber}" 的效期 (上次入庫: ${data.last_entry_date})`);
+                    
+                    // 可選：填入上次的數量和單位作為參考
+                    const quantityField = document.getElementById('quantity');
+                    const unitField = document.getElementById('unit');
+                    
+                    if (!quantityField.value) {
+                        quantityField.value = data.previous_quantity;
+                        quantityField.classList.add('auto-suggested');
+                    }
+                    
+                    if (!unitField.value) {
+                        unitField.value = data.previous_unit;
+                        unitField.classList.add('auto-suggested');
+                        handleUnitChange(); // 觸發單位變更處理
+                    }
+                    
+                } else {
+                    // 新批號 - 清空效期讓使用者輸入
+                    expiryField.value = '';
+                    expiryField.classList.remove('auto-filled');
+                    expiryField.readOnly = false;
+                    
+                    if (data.is_new_batch) {
+                        showNewBatchNotification(`🆕 新批號 "${batchNumber}" - 請手動輸入穩定效期`);
+                    }
+                }
+            } catch (error) {
+                console.error('載入批號效期失敗:', error);
+                clearExpiryDate();
+            }
+        }
+
+        // 獲取批號建議
+        async function fetchBatchSuggestions(reagentName, query) {
+            try {
+                const response = await fetch(`/api/reagent-batches?name=${encodeURIComponent(reagentName)}`);
+                const batches = await response.json();
+                
+                const filteredBatches = batches.filter(batch => 
+                    batch.batch_number.toUpperCase().includes(query.toUpperCase())
+                );
+                
+                currentBatchSuggestions = filteredBatches;
+                selectedBatchSuggestionIndex = -1;
+                displayBatchSuggestions(filteredBatches);
+            } catch (error) {
+                console.error('獲取批號建議失敗:', error);
+                hideBatchSuggestions();
+            }
+        }
+
+        // 顯示批號建議（含效期資訊）
+        function displayBatchSuggestions(suggestions) {
+            const suggestionsDiv = document.getElementById('batchSuggestions');
+            
+            if (suggestions.length === 0) {
+                hideBatchSuggestions();
+                return;
+            }
+            
+            const html = suggestions.map((batch, index) => `
+                <div class="suggestion-item p-2 border-bottom cursor-pointer" 
+                     data-index="${index}"
+                     onclick="selectBatchSuggestion('${batch.batch_number.replace(/'/g, "\\'")}')"
+                     onmouseenter="highlightBatchSuggestion(${index})">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-history text-info me-2"></i>
+                            <strong>${batch.batch_number}</strong>
+                        </div>
+                        <small class="text-muted">效期: ${batch.expiry_date}</small>
+                    </div>
+                    <small class="text-muted ms-3">上次入庫: ${batch.latest_entry}</small>
+                </div>
+            `).join('');
+            
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.style.display = 'block';
+        }
+
+        // 更新批號建議選擇高亮
+        function updateBatchSuggestionSelection() {
+            const items = document.querySelectorAll('#batchSuggestions .suggestion-item');
+            
+            items.forEach((item, index) => {
+                if (index === selectedBatchSuggestionIndex) {
+                    item.classList.add('bg-primary', 'text-white');
+                } else {
+                    item.classList.remove('bg-primary', 'text-white');
+                }
+            });
+        }
+
+        // 鼠標懸停高亮批號建議
+        function highlightBatchSuggestion(index) {
+            selectedBatchSuggestionIndex = index;
+            updateBatchSuggestionSelection();
+        }
+
+        // 選擇批號建議
+        function selectBatchSuggestion(batchNumber) {
+            document.getElementById('reagentBatchNumber').value = batchNumber;
+            hideBatchSuggestions();
+            
+            // 載入該批號的詳細資料
+            const reagentName = document.getElementById('reagentName').value.trim();
+            if (reagentName) {
+                loadBatchExpiry(reagentName, batchNumber);
+            }
+        }
+
+        // 隱藏批號建議
+        function hideBatchSuggestions() {
+            const suggestionsDiv = document.getElementById('batchSuggestions');
+            if (suggestionsDiv) {
+                suggestionsDiv.style.display = 'none';
+            }
+            currentBatchSuggestions = [];
+            selectedBatchSuggestionIndex = -1;
+        }
+
+        // 清空效期欄位
+        function clearExpiryDate() {
+            const expiryField = document.getElementById('expiryDate');
+            expiryField.classList.remove('auto-filled');
+            expiryField.readOnly = false;
+        }
+
+        // 顯示自動填充通知
+        function showAutoFillNotification(message) {
+            // 創建通知元素
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-info alert-dismissible fade show auto-fill-notification';
+            notification.innerHTML = `
+                <i class="fas fa-magic me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // 插入到表單頂部
+            const form = document.getElementById('entryForm');
+            form.insertBefore(notification, form.firstChild);
+            
+            // 3秒後自動消失
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+
+        // 顯示新批號通知
+        function showNewBatchNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-warning alert-dismissible fade show';
+            notification.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const form = document.getElementById('entryForm');
+            form.insertBefore(notification, form.firstChild);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
 
         // 頁籤切換時重新載入資料 - 使用多種方法確保可靠性
         function setupTabSwitching() {
