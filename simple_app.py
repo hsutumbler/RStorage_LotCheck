@@ -31,9 +31,18 @@ def get_app_directory():
         app_dir = os.path.dirname(os.path.abspath(__file__))
     return app_dir
 
-# 設定資料庫路徑（在exe檔案同目錄）
+# 設定資料庫路徑
 APP_DIR = get_app_directory()
-DB_PATH = os.path.join(APP_DIR, 'simple_inventory.db')
+# 在打包版本中，資料庫放在database資料夾中
+if getattr(sys, 'frozen', False):
+    # 打包版本：使用database資料夾
+    db_dir = os.path.join(APP_DIR, 'database')
+    if not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+    DB_PATH = os.path.join(db_dir, 'simple_inventory.db')
+else:
+    # 開發版本：直接放在程式目錄
+    DB_PATH = os.path.join(APP_DIR, 'simple_inventory.db')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
@@ -608,86 +617,54 @@ def generate_zpl_labels(entry, quantity=None, is_new_batch=False):
     if quantity is None:
         quantity = entry.quantity
     
-    # ZPL配置參數
-    dpi = 203  # 標籤機DPI
-    label_width_mm = 50  # 標籤寬度 5cm
-    label_height_mm = 35  # 標籤高度 3.5cm
-    
-    # 將mm轉換為點 (dots)
-    label_width_dots = int(label_width_mm * dpi / 25.4)
-    label_height_dots = int(label_height_mm * dpi / 25.4)
-    
-    # 文字位置 (Y軸位置，從上到下)
-    title_y = int(29 * dpi / 25.4)  # 【入庫】
-    name_y = int(25 * dpi / 25.4)   # 試劑名稱
-    batch_y = int(21 * dpi / 25.4)  # 試劑批號
-    expiry_y = int(17 * dpi / 25.4) # 穩定效期
-    entry_y = int(13 * dpi / 25.4)  # 入庫時間
-    out_title_y = int(8 * dpi / 25.4)  # 【出庫】
-    out_info_y = int(4 * dpi / 25.4)   # 人員/出庫日期
-    
-    # X軸位置
-    text_x = int(2 * dpi / 25.4)
-    person_x = int(25 * dpi / 25.4)
-    
     zpl_commands = []
     
     for i in range(quantity):
-        zpl = f"^XA\n"  # 開始標籤
+        zpl = "^XA\n"  # 開始標籤
         
         # 設定標籤尺寸
-        zpl += f"^PW{label_width_dots}\n"  # 設定列印寬度
-        zpl += f"^LL{label_height_dots}\n"  # 設定標籤長度
+        zpl += "^PW399\n"  # 設定列印寬度
+        zpl += "^LL279\n"  # 設定標籤長度
         
-        # 設定中文字型支援 (ZT410支援Unicode)
-        # ^CI28 = 使用UTF-8編碼
+        # 設定中文字型支援 (UTF-8編碼)
         zpl += "^CI28\n"
         
         # 繪製邊框
         if is_new_batch:
             # 新批號：雙邊框
-            # 外框 (粗線)
-            outer_thickness = 6
-            zpl += f"^FO10,10^GB{label_width_dots-20},{label_height_dots-20},{outer_thickness}^FS\n"
-            # 內框 (細線)
-            inner_thickness = 2
-            inner_margin = 15
-            zpl += f"^FO{inner_margin},{inner_margin}^GB{label_width_dots-2*inner_margin},{label_height_dots-2*inner_margin},{inner_thickness}^FS\n"
+            zpl += "^FO10,10^GB379,259,6^FS\n"  # 外框 (粗線)
+            zpl += "^FO15,15^GB369,249,2^FS\n"  # 內框 (細線)
         else:
             # 舊批號：單邊框
-            thickness = 2
-            margin = 10
-            zpl += f"^FO{margin},{margin}^GB{label_width_dots-2*margin},{label_height_dots-2*margin},{thickness}^FS\n"
+            zpl += "^FO15,15^GB369,249,2^FS\n"
         
-        # 使用支援中文的字型
-        # ^A@N = 使用Unicode字型, 字體大小
         # 標題【入庫】
-        zpl += f"^FO{text_x},{title_y}^A@N,30,30^FD【入庫】^FS\n"
+        zpl += "^FO20,25^AJN,25,30^FD【入庫】^FS\n"
         
         # 試劑名稱
-        zpl += f"^FO{text_x},{name_y}^A@N,24,24^FD試劑名稱：{entry.reagent_name}^FS\n"
+        zpl += f"^FO20,55^AJN,20,20^FD試劑名稱:{entry.reagent_name}^FS\n"
         
         # 試劑批號
         if is_new_batch:
-            batch_text = f"試劑批號：{entry.reagent_batch_number} >>新批號<<"
+            batch_text = f"試劑批號:{entry.reagent_batch_number} >>新批號<<"
         else:
-            batch_text = f"試劑批號：{entry.reagent_batch_number} (允收合格)"
-        zpl += f"^FO{text_x},{batch_y}^A@N,24,24^FD{batch_text}^FS\n"
+            batch_text = f"試劑批號:{entry.reagent_batch_number} (允收合格)"
+        zpl += f"^FO20,85^AJN,20,20^FD{batch_text}^FS\n"
         
         # 穩定效期
         expiry_str = entry.expiry_date.strftime('%Y/%m/%d')
-        zpl += f"^FO{text_x},{expiry_y}^A@N,24,24^FD穩定效期：{expiry_str}^FS\n"
+        zpl += f"^FO20,115^AJN,20,20^FD穩定效期:{expiry_str}^FS\n"
         
         # 入庫時間
         entry_str = entry.entry_date.strftime('%Y/%m/%d')
-        zpl += f"^FO{text_x},{entry_y}^A@N,24,24^FD入庫時間：{entry_str}^FS\n"
+        zpl += f"^FO20,145^AJN,20,20^FD入庫日期:{entry_str}^FS\n"
         
         # 出庫標題【出庫】
-        zpl += f"^FO{text_x},{out_title_y}^A@N,30,30^FD【出庫】^FS\n"
+        zpl += "^FO20,185^AJN,25,30^FD【出庫】^FS\n"
         
         # 出庫資訊
-        zpl += f"^FO{text_x},{out_info_y}^A@N,24,24^FD人員：^FS\n"
-        zpl += f"^FO{person_x},{out_info_y}^A@N,24,24^FD出庫日期：^FS\n"
+        zpl += "^FO20,215^AJN,20,20^FD人員^FS\n"
+        zpl += "^FO200,215^AJN,20,20^FD出庫日期^FS\n"
         
         zpl += "^XZ\n"  # 結束標籤
         
