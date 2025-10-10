@@ -1122,11 +1122,43 @@ document.addEventListener('DOMContentLoaded', function() {
         async function loadEntries() {
             try {
                 const response = await fetch('/api/entries');
-                allEntries = await response.json();
+                const result = await response.json();
+                
+                // 新API格式返回entries屬性
+                allEntries = result.entries || [];
+                
+                // 顯示記錄
                 displayEntries(allEntries);
+                
+                // 如果有限制顯示，添加提示訊息
+                if (result.limitApplied) {
+                    showInfoMessage(`目前顯示最近50筆記錄（資料庫共有 ${result.totalCount} 筆）。使用上方篩選功能可搜尋更多記錄。`);
+                }
             } catch (error) {
                 console.error('載入記錄失敗:', error);
             }
+        }
+        
+        // 顯示提示訊息
+        function showInfoMessage(message) {
+            // 移除舊的提示訊息
+            const oldNotification = document.getElementById('recordLimitNotification');
+            if (oldNotification) {
+                oldNotification.remove();
+            }
+            
+            // 創建新的提示訊息
+            const notification = document.createElement('div');
+            notification.id = 'recordLimitNotification';
+            notification.className = 'alert alert-info alert-dismissible fade show mb-3';
+            notification.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // 插入到表格上方
+            const tableContainer = document.querySelector('.table-responsive');
+            tableContainer.parentNode.insertBefore(notification, tableContainer);
         }
 
                  // 顯示入庫記錄
@@ -1451,63 +1483,121 @@ document.addEventListener('DOMContentLoaded', function() {
          }
 
          // 套用篩選器
-         function applyFilters() {
+         async function applyFilters() {
              const filterName = document.getElementById('filterName').value.trim();
-            const filterBatch = document.getElementById('filterBatch').value.trim();
+             const filterBatch = document.getElementById('filterBatch').value.trim();
              const filterSupplier = document.getElementById('filterSupplier').value;
              const filterDateFrom = document.getElementById('filterDateFrom').value;
              const filterDateTo = document.getElementById('filterDateTo').value;
-
-             let filteredEntries = allEntries.filter(entry => {
-                 // 名稱篩選
-                 if (filterName && !entry.reagent_name.toLowerCase().includes(filterName.toLowerCase())) {
-                     return false;
-                 }
-
-                // 批號篩選
-                if (filterBatch && !entry.reagent_batch_number.toLowerCase().includes(filterBatch.toLowerCase())) {
-                    return false;
-                }
-
-                 // 供應商篩選
-                 if (filterSupplier && entry.supplier !== filterSupplier) {
-                     return false;
-                 }
-
-                 // 日期範圍篩選
-                 if (filterDateFrom || filterDateTo) {
-                     const entryDate = new Date(entry.entry_date.split(' ')[0]); // 只取日期部分
+             
+             // 檢查是否有任何篩選條件
+             const hasFilters = filterName || filterBatch || filterSupplier || filterDateFrom || filterDateTo;
+             
+             if (hasFilters) {
+                 // 有篩選條件時，使用搜尋API獲取完整結果
+                 await searchWithFilters(filterName, filterBatch, filterSupplier, filterDateFrom, filterDateTo);
+             } else {
+                 // 沒有篩選條件時，顯示最近50筆
+                 loadEntries();
+             }
+         }
+         
+         // 使用篩選條件搜尋所有記錄
+         async function searchWithFilters(name, batch, supplier, dateFrom, dateTo) {
+             try {
+                 // 顯示載入中提示
+                 const tableBody = document.getElementById('entriesTableBody');
+                 tableBody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">搜尋中...</p></td></tr>';
+                 
+                 // 構建搜尋查詢
+                 let searchTerms = [];
+                 if (name) searchTerms.push(name);
+                 if (batch) searchTerms.push(batch);
+                 if (supplier) searchTerms.push(supplier);
+                 
+                 const searchQuery = searchTerms.join(' ');
+                 
+                 if (searchQuery) {
+                     // 使用API搜尋
+                     const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+                     const result = await response.json();
                      
-                     if (filterDateFrom && entryDate < new Date(filterDateFrom)) {
-                         return false;
+                     if (result.entries) {
+                         // 在搜尋結果中進一步篩選日期
+                         let searchResults = result.entries;
+                         
+                         if (dateFrom || dateTo) {
+                             searchResults = searchResults.filter(entry => {
+                                 const entryDate = new Date(entry.entry_date.split(' ')[0]);
+                                 
+                                 if (dateFrom && entryDate < new Date(dateFrom)) {
+                                     return false;
+                                 }
+                                 
+                                 if (dateTo && entryDate > new Date(dateTo)) {
+                                     return false;
+                                 }
+                                 
+                                 return true;
+                             });
+                         }
+                         
+                         // 顯示搜尋結果
+                         displayEntries(searchResults);
+                         
+                         // 顯示搜尋提示
+                         showInfoMessage(`搜尋結果：找到 ${searchResults.length} 筆符合條件的記錄`);
                      }
+                 } else if (dateFrom || dateTo) {
+                     // 只有日期篩選，需要獲取所有記錄後篩選
+                     // 注意：這可能會導致效能問題，如果資料量很大
+                     const response = await fetch('/api/search?q=all_records');
+                     const result = await response.json();
                      
-                     if (filterDateTo && entryDate > new Date(filterDateTo)) {
-                         return false;
+                     if (result.entries) {
+                         const filteredByDate = result.entries.filter(entry => {
+                             const entryDate = new Date(entry.entry_date.split(' ')[0]);
+                             
+                             if (dateFrom && entryDate < new Date(dateFrom)) {
+                                 return false;
+                             }
+                             
+                             if (dateTo && entryDate > new Date(dateTo)) {
+                                 return false;
+                             }
+                             
+                             return true;
+                         });
+                         
+                         displayEntries(filteredByDate);
+                         showInfoMessage(`日期篩選結果：找到 ${filteredByDate.length} 筆符合條件的記錄`);
                      }
                  }
-
-                 return true;
-             });
-
-             displayEntries(filteredEntries);
+             } catch (error) {
+                 console.error('搜尋失敗:', error);
+                 // 顯示錯誤訊息
+                 const tableBody = document.getElementById('entriesTableBody');
+                 tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">搜尋失敗，請重試</td></tr>';
+             }
          }
 
          // 清除篩選器
          function clearFilters() {
              document.getElementById('filterName').value = '';
-            document.getElementById('filterBatch').value = '';
+             document.getElementById('filterBatch').value = '';
              document.getElementById('filterSupplier').value = '';
              document.getElementById('filterDateFrom').value = '';
              document.getElementById('filterDateTo').value = '';
              
-             // 重新顯示所有記錄
-             displayEntries(allEntries);
+             // 重新載入最近50筆記錄
+             loadEntries();
          }
 
          // 匯出CSV功能
          function exportToCSV() {
-             const currentEntries = allEntries;
+             // 確保 allEntries 是陣列
+             const currentEntries = Array.isArray(allEntries) ? allEntries : [];
+             
              if (currentEntries.length === 0) {
                  alert('沒有資料可以匯出');
         return;

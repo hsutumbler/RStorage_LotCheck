@@ -71,9 +71,12 @@ def get_entries():
         with app.app_context():
             db.create_all()
         
-        # 查詢記錄
-        entries = ReagentEntry.query.order_by(ReagentEntry.entry_date.desc()).all()
-        print(f"找到 {len(entries)} 筆記錄")
+        # 查詢記錄（限制只返回最近50筆）
+        entries = ReagentEntry.query.order_by(ReagentEntry.entry_date.desc()).limit(50).all()
+        print(f"找到 {len(entries)} 筆記錄（最近50筆）")
+        
+        # 獲取總記錄數（用於前端顯示）
+        total_count = ReagentEntry.query.count()
         
         result = []
         for entry in entries:
@@ -88,8 +91,12 @@ def get_entries():
                 'entry_date': entry.entry_date.strftime('%Y-%m-%d %H:%M:%S')
             })
         
-        print(f"返回 {len(result)} 筆記錄")
-        return jsonify(result)
+        print(f"返回 {len(result)} 筆記錄，資料庫共有 {total_count} 筆")
+        return jsonify({
+            'entries': result,
+            'totalCount': total_count,
+            'limitApplied': len(entries) < total_count
+        })
         
     except Exception as e:
         print(f"錯誤: {e}")
@@ -208,15 +215,25 @@ def search_entries():
     try:
         query = request.args.get('q', '')
         if not query:
-            return jsonify([])
+            return jsonify({'entries': [], 'totalCount': 0, 'isSearchResult': True})
         
-        entries = ReagentEntry.query.filter(
-            db.or_(
-                ReagentEntry.reagent_name.contains(query),
-                ReagentEntry.reagent_batch_number.contains(query),
-                ReagentEntry.supplier.contains(query)
-            )
-        ).order_by(ReagentEntry.entry_date.desc()).all()
+        # 處理特殊查詢「all_records」- 用於日期篩選
+        if query == 'all_records':
+            print("執行全部記錄查詢（用於日期篩選）")
+            entries = ReagentEntry.query.order_by(ReagentEntry.entry_date.desc()).all()
+        else:
+            # 一般搜尋 - 不限制筆數，可以找到所有符合條件的記錄
+            entries = ReagentEntry.query.filter(
+                db.or_(
+                    ReagentEntry.reagent_name.contains(query),
+                    ReagentEntry.reagent_batch_number.contains(query),
+                    ReagentEntry.supplier.contains(query)
+                )
+            ).order_by(ReagentEntry.entry_date.desc()).all()
+        
+        # 計算總記錄數
+        total_count = len(entries)
+        print(f"搜尋 '{query}' 找到 {total_count} 筆記錄")
         
         result = []
         for entry in entries:
@@ -231,7 +248,11 @@ def search_entries():
                 'entry_date': entry.entry_date.strftime('%Y-%m-%d %H:%M:%S')
             })
         
-        return jsonify(result)
+        return jsonify({
+            'entries': result,
+            'totalCount': total_count,
+            'isSearchResult': True
+        })
         
     except Exception as e:
         print(f"搜尋記錄失敗: {e}")
