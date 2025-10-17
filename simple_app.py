@@ -146,12 +146,9 @@ def add_entry():
         
         print(f"成功新增記錄: {entry.id}")
         
-        # 獲取標籤機類型參數
-        printer_type = data.get('printer_type', 'zpl')  # 預設為ZPL模式
-        
-        # 自動列印標籤
+        # 自動列印標籤（只使用PDF模式）
         if data.get('print_labels', True):  # 預設會列印
-            labels_printed = generate_and_print_labels(entry, entry.quantity, False, printer_type)
+            labels_printed = generate_pdf_labels(entry, entry.quantity, False)
             print(f"已列印 {labels_printed} 張標籤")
         
         return jsonify({
@@ -190,12 +187,9 @@ def confirm_entry():
         
         print(f"成功新增新批號記錄: {entry.id}")
         
-        # 獲取標籤機類型參數
-        printer_type = data.get('printer_type', 'zpl')  # 預設為ZPL模式
-        
-        # 自動列印標籤
+        # 自動列印標籤（只使用PDF模式）
         if data.get('print_labels', True):  # 預設會列印
-            labels_printed = generate_and_print_labels(entry, entry.quantity, True, printer_type)
+            labels_printed = generate_pdf_labels(entry, entry.quantity, True)
             print(f"已列印 {labels_printed} 張新批號標籤")
         
         return jsonify({
@@ -1016,7 +1010,7 @@ def print_direct(entry_id):
         data = request.json
         quantity = data.get('quantity', entry.quantity)
         is_new_batch = data.get('is_new_batch', False)
-        printer_type = data.get('printer_type', 'zpl')  # 預設為ZPL模式
+        printer_type = data.get('printer_type', 'pdf')  # 預設為PDF模式
         
         # 如果前端沒有明確指定is_new_batch，則自動檢查
         if not is_new_batch:
@@ -1032,13 +1026,8 @@ def print_direct(entry_id):
         
         print(f"直接列印請求: 記錄ID {entry_id}, 數量 {quantity}, 新批號: {is_new_batch}, 標籤機類型: {printer_type}")
         
-        # 根據印表機類型選擇列印方式
-        if printer_type == "pdf":
-            # PDF模式：使用原本的直接列印邏輯
-            labels_printed = print_pdf_direct(entry, quantity, is_new_batch)
-        else:
-            # ZPL模式：使用統一的列印函數
-            labels_printed = generate_and_print_labels(entry, quantity, is_new_batch, printer_type)
+        # 直接列印（只使用PDF模式）
+        labels_printed = print_pdf_direct(entry, quantity, is_new_batch)
         
         return jsonify({
             'success': True,

@@ -307,17 +307,19 @@
                                     <div class="col-md-6 mb-3">
                                         <label for="printerType" class="form-label fw-bold">標籤機類型 *</label>
                                         <select class="form-control" id="printerType" required>
-                                            <option value="zpl">【大標籤機(ZPL模式)】</option>
                                             <option value="pdf">【小標籤機(PDF模式)】</option>
                                         </select>
                                         <div class="form-text">請選擇對應的標籤機類型</div>
                         </div>
                     </div>
                     
-                               <div class="text-center">
+                               <div class="d-flex justify-content-center align-items-center position-relative">
                                    <button type="submit" class="btn btn-primary btn-lg">
                                       <i class="fas fa-save me-2"></i>儲存並自動列印標籤
                                    </button>
+                                   <span class="badge bg-info fs-6 position-absolute end-0">
+                                       <i class="fas fa-tag me-1"></i>Ver1.1 20251017
+                                   </span>
                                </div>
                             </form>
                         </div>
@@ -418,7 +420,6 @@
     </div>
 
 
-
     <!-- 成功提示模態框 -->
     <div class="modal fade" id="successModal" tabindex="-1">
         <div class="modal-dialog">
@@ -510,7 +511,6 @@
                     <div class="mb-3">
                         <label for="printPrinterType" class="form-label fw-bold">標籤機類型：</label>
                         <select class="form-control" id="printPrinterType" required>
-                            <option value="zpl">【大標籤機(ZPL模式)】</option>
                             <option value="pdf">【小標籤機(PDF模式)】</option>
                         </select>
                     </div>
@@ -1217,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 確認列印
         async function confirmPrint() {
             const quantity = parseInt(document.getElementById('printQuantity').value);
-            const printerType = document.getElementById('printPrinterType').value;
+             const printerType = 'pdf';  // 固定使用PDF模式
             const entryId = window.currentPrintEntryId;
             
             if (quantity > 0) {
@@ -1308,7 +1308,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  quantity: parseInt(document.getElementById('quantity').value),
                  unit: document.getElementById('unit').value === '其他' ? document.getElementById('unitOther').value : document.getElementById('unit').value,
                  supplier: document.getElementById('supplier').value === '其他' ? document.getElementById('supplierOther').value : document.getElementById('supplier').value,
-                 printer_type: document.getElementById('printerType').value
+                 printer_type: 'pdf'  // 固定使用PDF模式
              };
 
              try {
@@ -1380,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  // 添加標籤機類型到待確認資料
                  const dataWithPrinterType = {
                      ...window.pendingEntryData,
-                     printer_type: document.getElementById('printerType').value
+                     printer_type: 'pdf'  // 固定使用PDF模式
                  };
                  
                  const response = await fetch('/api/confirm-entry', {
@@ -1398,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', function() {
                    
                    // 入庫成功後，直接列印標籤（新批號）
                    if (result.entry_id) {
-                       const printerType = document.getElementById('printerType').value;
+                       const printerType = 'pdf';  // 固定使用PDF模式
                        await directPrintNewEntry(result.entry_id, window.pendingEntryData.quantity, result.is_new_batch || true, printerType);
                    }
                       
