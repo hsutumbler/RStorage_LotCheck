@@ -294,31 +294,22 @@
                                          <label for="supplier" class="form-label fw-bold">供應商 *</label>
                                          <select class="form-control" id="supplier" required onchange="handleSupplierChange()">
                                              <option value="">請選擇供應商</option>
-                                             <option value="醫全">醫全</option>
-                                             <option value="亞培">亞培</option>
-                                             <option value="希森美康">希森美康</option>
-                                             <option value="沃芬">沃芬</option>
                                              <option value="其他">其他</option>
                                          </select>
                                          <input type="text" class="form-control mt-2" id="supplierOther" placeholder="請輸入其他供應商" style="display: none;">
+                                         <div class="form-text" id="supplierMessage"></div>
                             </div>
                                                                  </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="printerType" class="form-label fw-bold">標籤機類型 *</label>
-                                        <select class="form-control" id="printerType" required>
-                                            <option value="pdf">【小標籤機(PDF模式)】</option>
-                                        </select>
-                                        <div class="form-text">請選擇對應的標籤機類型</div>
-                        </div>
-                    </div>
+                                <input type="hidden" id="printerType" value="pdf">
                     
-                               <div class="d-flex justify-content-center align-items-center position-relative">
+                               <div class="d-flex justify-content-center align-items-center">
                                    <button type="submit" class="btn btn-primary btn-lg">
                                       <i class="fas fa-save me-2"></i>儲存並自動列印標籤
                                    </button>
-                                   <span class="badge bg-info fs-6 position-absolute end-0">
-                                       <i class="fas fa-tag me-1"></i>Ver1.1 20251017
+                               </div>
+                               <div class="d-flex justify-content-end mt-2">
+                                   <span class="badge bg-info fs-6">
+                                       <i class="fas fa-tag me-1"></i>Ver1.2 2025/10/19
                                    </span>
                                </div>
                             </form>
@@ -508,12 +499,7 @@
                             <span class="fw-bold text-primary fs-5">】組</span>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="printPrinterType" class="form-label fw-bold">標籤機類型：</label>
-                        <select class="form-control" id="printPrinterType" required>
-                            <option value="pdf">【小標籤機(PDF模式)】</option>
-                        </select>
-                    </div>
+                    <input type="hidden" id="printPrinterType" value="pdf">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
@@ -1301,6 +1287,12 @@ document.addEventListener('DOMContentLoaded', function() {
                  return;
              }
 
+             // 先處理新供應商（如果有的話）
+             if (document.getElementById('supplier').value === '其他') {
+                 const newSupplierName = document.getElementById('supplierOther').value.trim();
+                 await handleNewSupplier(newSupplierName);
+             }
+
              const formData = {
                  reagent_name: document.getElementById('reagentName').value,
                  reagent_batch_number: document.getElementById('reagentBatchNumber').value,
@@ -1442,19 +1434,75 @@ document.addEventListener('DOMContentLoaded', function() {
              }
          }
 
+         // 載入所有供應商
+         async function loadSuppliers() {
+             try {
+                 const response = await fetch('/api/suppliers');
+                 const suppliers = await response.json();
+                 
+                 const supplierSelect = document.getElementById('supplier');
+                 const currentSuppliers = Array.from(supplierSelect.options).map(opt => opt.value);
+                 
+                 // 保留"請選擇供應商"和"其他"選項
+                 while (supplierSelect.options.length > 2) {
+                     supplierSelect.remove(1);
+                 }
+                 
+                 // 在"其他"選項之前插入所有供應商
+                 suppliers.forEach(supplier => {
+                     if (!currentSuppliers.includes(supplier.name)) {
+                         const option = new Option(supplier.name, supplier.name);
+                         supplierSelect.add(option, supplierSelect.options[supplierSelect.options.length - 1]);
+                     }
+                 });
+             } catch (error) {
+                 console.error('載入供應商失敗:', error);
+             }
+         }
+
+         // 初始載入供應商
+         document.addEventListener('DOMContentLoaded', loadSuppliers);
+
          // 處理供應商選擇變更
          function handleSupplierChange() {
              const supplierSelect = document.getElementById('supplier');
              const supplierOther = document.getElementById('supplierOther');
+             const supplierMessage = document.getElementById('supplierMessage');
              
              if (supplierSelect.value === '其他') {
                  supplierOther.style.display = 'block';
                  supplierOther.required = true;
                  supplierOther.focus();
+                 supplierMessage.textContent = '新供應商將會被儲存以供未來使用';
              } else {
                  supplierOther.style.display = 'none';
                  supplierOther.required = false;
                  supplierOther.value = '';
+                 supplierMessage.textContent = '';
+             }
+         }
+
+         // 處理新供應商的添加
+         async function handleNewSupplier(supplierName) {
+             try {
+                 const response = await fetch('/api/suppliers', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify({ name: supplierName })
+                 });
+                 
+                 const result = await response.json();
+                 if (result.success) {
+                     // 重新載入供應商列表
+                     await loadSuppliers();
+                     return true;
+                 }
+                 return false;
+             } catch (error) {
+                 console.error('新增供應商失敗:', error);
+                 return false;
              }
          }
 

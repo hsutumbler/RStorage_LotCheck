@@ -49,8 +49,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# 簡化的資料庫模型
+# 資料庫模型
+class Supplier(db.Model):
+    """供應商資料表"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)  # 供應商名稱
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 建立時間
+
 class ReagentEntry(db.Model):
+    """試劑入庫記錄資料表"""
     id = db.Column(db.Integer, primary_key=True)
     reagent_name = db.Column(db.String(100), nullable=False)
     reagent_batch_number = db.Column(db.String(50), nullable=False)
@@ -63,6 +70,38 @@ class ReagentEntry(db.Model):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/suppliers', methods=['GET'])
+def get_suppliers():
+    """獲取所有供應商列表"""
+    try:
+        suppliers = Supplier.query.order_by(Supplier.name).all()
+        return jsonify([{'id': s.id, 'name': s.name} for s in suppliers])
+    except Exception as e:
+        print(f"獲取供應商列表失敗: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/suppliers', methods=['POST'])
+def add_supplier():
+    """新增供應商"""
+    try:
+        data = request.json
+        supplier_name = data.get('name')
+        
+        # 檢查是否已存在
+        existing = Supplier.query.filter_by(name=supplier_name).first()
+        if existing:
+            return jsonify({'success': True, 'message': '供應商已存在', 'supplier': {'id': existing.id, 'name': existing.name}})
+        
+        # 新增供應商
+        new_supplier = Supplier(name=supplier_name)
+        db.session.add(new_supplier)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'supplier': {'id': new_supplier.id, 'name': new_supplier.name}})
+    except Exception as e:
+        print(f"新增供應商失敗: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/entries', methods=['GET'])
 def get_entries():
@@ -146,10 +185,8 @@ def add_entry():
         
         print(f"成功新增記錄: {entry.id}")
         
-        # 自動列印標籤（只使用PDF模式）
-        if data.get('print_labels', True):  # 預設會列印
-            labels_printed = generate_pdf_labels(entry, entry.quantity, False)
-            print(f"已列印 {labels_printed} 張標籤")
+        # 不在此處自動列印，由前端控制列印時機
+        print(f"入庫完成，等待前端列印指令")
         
         return jsonify({
             'success': True,
@@ -187,10 +224,8 @@ def confirm_entry():
         
         print(f"成功新增新批號記錄: {entry.id}")
         
-        # 自動列印標籤（只使用PDF模式）
-        if data.get('print_labels', True):  # 預設會列印
-            labels_printed = generate_pdf_labels(entry, entry.quantity, True)
-            print(f"已列印 {labels_printed} 張新批號標籤")
+        # 不在此處自動列印，由前端控制列印時機
+        print(f"新批號入庫完成，等待前端列印指令")
         
         return jsonify({
             'success': True,
@@ -644,13 +679,16 @@ def generate_zpl_labels(entry, quantity=None, is_new_batch=False):
         # 設定中文字型支援 (UTF-8編碼)
         zpl += "^CI28\n"
         
+        # 只有第一張標籤是新批號格式（當is_new_batch為True時）
+        is_first_label = is_new_batch and i == 0
+        
         # 繪製邊框
-        if is_new_batch:
+        if is_first_label:
             # 新批號：雙邊框
             zpl += "^FO10,10^GB379,259,6^FS\n"  # 外框 (粗線)
             zpl += "^FO15,15^GB369,249,2^FS\n"  # 內框 (細線)
         else:
-            # 舊批號：單邊框
+            # 一般標籤：單邊框
             zpl += "^FO15,15^GB369,249,2^FS\n"
         
         # 標題【入庫】
@@ -659,8 +697,8 @@ def generate_zpl_labels(entry, quantity=None, is_new_batch=False):
         # 試劑名稱
         zpl += f"^FO20,55^AJN,20,20^FD試劑名稱:{entry.reagent_name}^FS\n"
         
-        # 試劑批號
-        if is_new_batch:
+        # 試劑批號（根據是否第一張決定顯示方式）
+        if is_first_label:
             batch_text = f"試劑批號:{entry.reagent_batch_number} >>新批號<<"
         else:
             batch_text = f"試劑批號:{entry.reagent_batch_number} (允收合格)"
@@ -880,6 +918,8 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
     """
     生成PDF格式的標籤
     """
+    print(f"生成標籤 - 數量: {quantity}, 新批號: {is_new_batch}")
+    
     if quantity is None:
         quantity = entry.quantity
     
@@ -889,55 +929,111 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
     
     # 建立標籤PDF
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
-    c = canvas.Canvas(temp_file.name, pagesize=(label_width, label_height))
+    
+    # 創建PDF文檔
+    doc = canvas.Canvas(temp_file.name, pagesize=(label_width, label_height))
     
     # 獲取中文字體
     font_name = get_chinese_font()
     
+    # 繪製每一頁標籤
     for i in range(quantity):
-        if is_new_batch:
+        print(f"正在生成第 {i+1} 張標籤...")
+        
+        # 只有第一張標籤是新批號格式（當is_new_batch為True時）
+        is_first_label = is_new_batch and i == 0
+        
+        # 繪製邊框
+        if is_first_label:
             # 新批號標籤：雙重邊框
             # 外層邊框（粗邊框）
-            c.setLineWidth(2)
-            c.rect(0.5*mm, 0.5*mm, label_width-1*mm, label_height-1*mm)
+            doc.setLineWidth(2)
+            doc.rect(0.5*mm, 0.5*mm, label_width-1*mm, label_height-1*mm)
             # 內層邊框（細邊框）
-            c.setLineWidth(0.5)
-            c.rect(1.5*mm, 1.5*mm, label_width-3*mm, label_height-3*mm)
+            doc.setLineWidth(0.5)
+            doc.rect(1.5*mm, 1.5*mm, label_width-3*mm, label_height-3*mm)
         else:
-            # 舊批號標籤：單層邊框
-            c.setLineWidth(0.5)
-            c.rect(1*mm, 1*mm, label_width-2*mm, label_height-2*mm)
+            # 一般標籤：單層邊框
+            doc.setLineWidth(0.5)
+            doc.rect(1*mm, 1*mm, label_width-2*mm, label_height-2*mm)
         
         # 標題（粗體）
-        c.setFont(font_name, 10)
-        c.drawString(2*mm, 29*mm, "【入庫】")
+        doc.setFont(font_name, 10)
+        doc.drawString(2*mm, 29*mm, "【入庫】")
         
         # 入庫資料（垂直排列，粗體）
-        c.setFont(font_name, 8)
-        c.drawString(2*mm, 25*mm, f"試劑名稱：{entry.reagent_name}")
+        doc.setFont(font_name, 8)
+        doc.drawString(2*mm, 25*mm, f"試劑名稱：{entry.reagent_name}")
         
-        # 試劑批號（根據是否新批號顯示不同內容）
-        if is_new_batch:
+        # 試劑批號（根據是否第一張決定顯示方式）
+        if is_first_label:
             batch_text = f"試劑批號：{entry.reagent_batch_number} >>新批號<<"
         else:
             batch_text = f"試劑批號：{entry.reagent_batch_number} (允收合格)"
-        c.drawString(2*mm, 21*mm, batch_text)
+        doc.drawString(2*mm, 21*mm, batch_text)
         
-        c.drawString(2*mm, 17*mm, f"穩定效期：{entry.expiry_date.strftime('%Y/%m/%d')}")
-        c.drawString(2*mm, 13*mm, f"入庫時間：{entry.entry_date.strftime('%Y/%m/%d')}")
+        # 其他資訊
+        doc.drawString(2*mm, 17*mm, f"穩定效期：{entry.expiry_date.strftime('%Y/%m/%d')}")
+        doc.drawString(2*mm, 13*mm, f"入庫時間：{entry.entry_date.strftime('%Y/%m/%d')}")
         
         # 出庫標題（粗體）
-        c.setFont(font_name, 10)
-        c.drawString(2*mm, 8*mm, "【出庫】")
+        doc.setFont(font_name, 10)
+        doc.drawString(2*mm, 8*mm, "【出庫】")
         
         # 出庫人員和日期（留白給蓋章用，粗體）
-        c.setFont(font_name, 8)
-        c.drawString(2*mm, 4*mm, "人員：")
-        c.drawString(25*mm, 4*mm, "出庫日期：")
+        doc.setFont(font_name, 8)
+        doc.drawString(2*mm, 4*mm, "人員：")
+        doc.drawString(25*mm, 4*mm, "出庫日期：")
         
-        # 如果不是最後一頁，新增頁面
+        # 如果不是最後一頁，則新增頁面
         if i < quantity - 1:
-            c.showPage()
+            doc.showPage()
+    
+    # 儲存PDF
+    doc.save()
+    print(f"標籤生成完成，檔案位置: {temp_file.name}")
+    
+    try:
+        print(f"已生成 {quantity} 張標籤PDF: {temp_file.name}")
+        
+        if WINDOWS_PRINT_AVAILABLE:
+            print("正在嘗試直接列印...")
+            
+            # 獲取預設印表機名稱
+            default_printer = win32print.GetDefaultPrinter()
+            print(f"使用預設印表機: {default_printer}")
+            
+            # 使用Adobe Reader或系統PDF查看器的靜默列印命令
+            # 使用完整路徑調用SumatraPDF或Adobe Reader
+            adobe_path = r"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
+            sumatra_path = r"C:\Program Files\SumatraPDF\SumatraPDF.exe"
+            
+            if os.path.exists(sumatra_path):
+                print("使用SumatraPDF列印...")
+                subprocess.run([sumatra_path, "-print-to-default", "-silent", temp_file.name], check=True)
+            elif os.path.exists(adobe_path):
+                print("使用Adobe Reader列印...")
+                subprocess.run([adobe_path, "/T", temp_file.name, default_printer], check=True)
+            else:
+                print("找不到PDF閱讀器，使用系統預設程式...")
+                # 如果都找不到，使用系統預設的方式
+                win32api.ShellExecute(0, "print", temp_file.name, None, ".", 0)
+            
+            print("列印命令已發送")
+        else:
+            print("Windows列印功能不可用，改為開啟PDF檔案")
+            # 使用系統預設PDF查看器開啟
+            subprocess.Popen(['start', temp_file.name], shell=True)
+            print(f"PDF已開啟，請手動選擇列印或儲存")
+    except Exception as e:
+        print(f"列印失敗: {e}")
+        print("改為開啟PDF檔案供手動列印")
+        try:
+            subprocess.Popen(['start', temp_file.name], shell=True)
+        except:
+            pass
+    
+    return quantity
     
     c.save()
     
@@ -1026,8 +1122,8 @@ def print_direct(entry_id):
         
         print(f"直接列印請求: 記錄ID {entry_id}, 數量 {quantity}, 新批號: {is_new_batch}, 標籤機類型: {printer_type}")
         
-        # 直接列印（只使用PDF模式）
-        labels_printed = print_pdf_direct(entry, quantity, is_new_batch)
+        # 直接列印（使用正確的PDF生成函數）
+        labels_printed = generate_pdf_labels(entry, quantity, is_new_batch)
         
         return jsonify({
             'success': True,
