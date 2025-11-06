@@ -3,8 +3,8 @@ Flask-SQLAlchemy==3.0.5
 Werkzeug==2.3.7
 python-dateutil==2.8.2
 reportlab==4.0.4
-Pillow==10.0.1
-# Windows列印功能（可選）
+# Pillow: Will be installed separately using pre-built wheels (see build script)
+# Windows printing (optional)
 pywin32==306
-# 打包工具
+# Packaging tool
 PyInstaller==6.1.0

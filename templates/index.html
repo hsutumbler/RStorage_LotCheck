@@ -300,7 +300,18 @@
                                          <div class="form-text" id="supplierMessage"></div>
                             </div>
                                                                  </div>
-                                <input type="hidden" id="printerType" value="pdf">
+                                 <div class="row">
+                                     <div class="col-md-12 mb-3">
+                                         <label for="printerType" class="form-label fw-bold">
+                                             <i class="fas fa-print me-2"></i>列印模式 *
+                                         </label>
+                                         <select class="form-control" id="printerType" required>
+                                             <option value="pdf" selected>PDF模式 - 一般印表機列印</option>
+                                             <option value="zpl">ZPL模式 - Zebra標籤機列印</option>
+                                         </select>
+                                         <div class="form-text">選擇 PDF 模式用於一般印表機，選擇 ZPL 模式用於 Zebra 標籤機（如 GX420t）</div>
+                                     </div>
+                                 </div>
                     
                                <div class="d-flex justify-content-center align-items-center">
                                    <button type="submit" class="btn btn-primary btn-lg">
@@ -499,7 +510,14 @@
                             <span class="fw-bold text-primary fs-5">】組</span>
                         </div>
                     </div>
-                    <input type="hidden" id="printPrinterType" value="pdf">
+                    <div class="mb-3">
+                        <label for="printPrinterType" class="form-label fw-bold">列印模式：</label>
+                        <select class="form-control" id="printPrinterType">
+                            <option value="pdf" selected>PDF模式 - 一般印表機列印</option>
+                            <option value="zpl">ZPL模式 - Zebra標籤機列印</option>
+                        </select>
+                        <div class="form-text small">選擇對應的列印模式</div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
@@ -1203,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 確認列印
         async function confirmPrint() {
             const quantity = parseInt(document.getElementById('printQuantity').value);
-             const printerType = 'pdf';  // 固定使用PDF模式
+            const printerType = document.getElementById('printPrinterType').value;  // 從模態框下拉選單讀取列印模式
             const entryId = window.currentPrintEntryId;
             
             if (quantity > 0) {
@@ -1218,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
                 // 直接列印到預設印表機
-        async function directPrint(entryId, defaultQuantity, printerType = 'zpl') {
+        async function directPrint(entryId, defaultQuantity, printerType = 'pdf') {
             try {
                 const response = await fetch(`/api/print-direct/${entryId}`, {
                     method: 'POST',
@@ -1242,7 +1260,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // 新增入庫後直接列印標籤（靜默處理，不顯示錯誤給使用者）
-        async function directPrintNewEntry(entryId, quantity, isNewBatch = false, printerType = 'zpl') {
+        async function directPrintNewEntry(entryId, quantity, isNewBatch = false, printerType = 'pdf') {
             try {
                 console.log('開始列印新入庫標籤，ID:', entryId, '數量:', quantity, '新批號:', isNewBatch, '標籤機類型:', printerType);
                 
@@ -1300,7 +1318,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  quantity: parseInt(document.getElementById('quantity').value),
                  unit: document.getElementById('unit').value === '其他' ? document.getElementById('unitOther').value : document.getElementById('unit').value,
                  supplier: document.getElementById('supplier').value === '其他' ? document.getElementById('supplierOther').value : document.getElementById('supplier').value,
-                 printer_type: 'pdf'  // 固定使用PDF模式
+                 printer_type: document.getElementById('printerType').value  // 從下拉選單讀取列印模式（預設為 pdf）
              };
 
              try {
@@ -1369,10 +1387,13 @@ document.addEventListener('DOMContentLoaded', function() {
              }
 
              try {
+                 // 從表單中獲取列印模式
+                 const printerType = document.getElementById('printerType').value;
+                 
                  // 添加標籤機類型到待確認資料
                  const dataWithPrinterType = {
                      ...window.pendingEntryData,
-                     printer_type: 'pdf'  // 固定使用PDF模式
+                     printer_type: printerType  // 使用表單中選擇的列印模式
                  };
                  
                  const response = await fetch('/api/confirm-entry', {
@@ -1390,7 +1411,6 @@ document.addEventListener('DOMContentLoaded', function() {
                    
                    // 入庫成功後，直接列印標籤（新批號）
                    if (result.entry_id) {
-                       const printerType = 'pdf';  // 固定使用PDF模式
                        await directPrintNewEntry(result.entry_id, window.pendingEntryData.quantity, result.is_new_batch || true, printerType);
                    }
                       

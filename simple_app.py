@@ -11,6 +11,14 @@ import os
 import subprocess
 import sys
 
+# 嘗試導入 PIL/ImageFont 用於 ZPL 圖形模式
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    IMAGE_AVAILABLE = True
+except ImportError:
+    IMAGE_AVAILABLE = False
+    print("警告：PIL/Pillow 套件未安裝，ZPL 圖形模式將不可用")
+
 # 嘗試導入Windows列印相關套件
 try:
     import win32print
@@ -31,8 +39,266 @@ def get_app_directory():
         app_dir = os.path.dirname(os.path.abspath(__file__))
     return app_dir
 
+def find_sumatra_pdf():
+    """
+    尋找 SumatraPDF.exe，優先順序：
+    1. 應用程式目錄內的 SumatraPDF.exe
+    2. PyInstaller 臨時解壓目錄（如果有）
+    3. 系統常見安裝路徑
+    """
+    app_dir = get_app_directory()
+    
+    # 優先檢查應用程式目錄
+    local_sumatra = os.path.join(app_dir, 'SumatraPDF.exe')
+    if os.path.exists(local_sumatra):
+        print(f"找到應用程式目錄內的 SumatraPDF: {local_sumatra}")
+        return local_sumatra
+    
+    # 如果是打包版本，檢查 _internal 目錄（PyInstaller 的資料目錄）
+    if getattr(sys, 'frozen', False):
+        internal_dir = os.path.join(app_dir, '_internal')
+        internal_sumatra = os.path.join(internal_dir, 'SumatraPDF.exe')
+        if os.path.exists(internal_sumatra):
+            print(f"找到打包版本內的 SumatraPDF: {internal_sumatra}")
+            return internal_sumatra
+    
+    # 檢查系統常見安裝路徑
+    system_paths = [
+        r"C:\Program Files\SumatraPDF\SumatraPDF.exe",
+        r"C:\Program Files (x86)\SumatraPDF\SumatraPDF.exe",
+        os.path.expanduser(r"~\AppData\Local\SumatraPDF\SumatraPDF.exe"),
+    ]
+    
+    for path in system_paths:
+        if os.path.exists(path):
+            print(f"找到系統安裝的 SumatraPDF: {path}")
+            return path
+    
+    return None
+
 # 設定資料庫路徑
 APP_DIR = get_app_directory()
+
+# ZPL 圖形模式設定（全域變數）
+ZPL_CHINESE_FONT_PATH = None
+ZPL_CHINESE_FONT_SIZE = 22  # 點數，與 ZPL 字型大小對應
+ZPL_FIXED_GRAPHICS = {}  # 儲存固定文字的預定義圖形
+
+def _load_chinese_font_for_zpl():
+    """載入微軟正黑體供 ZPL 圖形模式使用"""
+    global ZPL_CHINESE_FONT_PATH
+    if not IMAGE_AVAILABLE:
+        return False
+    
+    try:
+        # 優先使用標準微軟正黑體，如果找不到則嘗試粗體版本
+        font_paths = [
+            "C:/Windows/Fonts/msjh.ttc",   # 微軟正黑體（標準版）
+            "C:/Windows/Fonts/msjhbd.ttc", # 微軟正黑體（粗體版，備用）
+        ]
+        
+        for font_path in font_paths:
+            if os.path.exists(font_path):
+                try:
+                    # 測試是否可以載入字型
+                    test_font = ImageFont.truetype(font_path, ZPL_CHINESE_FONT_SIZE)
+                    ZPL_CHINESE_FONT_PATH = font_path
+                    print(f"ZPL 圖形模式使用字型: {font_path} (微軟正黑體)")
+                    return True
+                except Exception as e:
+                    print(f"無法載入字型 {font_path}: {e}")
+                    continue
+        
+        print("警告：未找到微軟正黑體字型，ZPL 圖形模式可能無法正確顯示文字")
+        return False
+                
+    except Exception as e:
+        print(f"載入微軟正黑體失敗: {e}")
+        return False
+
+def _text_to_zpl_graphic(text, item_name, bold=False):
+    """將文字轉換為 ZPL 圖形格式（~DGR 指令）
+    
+    Args:
+        text: 要轉換的文字
+        item_name: ZPL 圖形項目名稱（如 ITEM_NAME）
+        bold: 是否使用粗體字型（預設為 False）
+    
+    Returns:
+        ZPL 圖形指令字串（包含 ~DGR 定義），如果失敗則返回 None
+    """
+    if not IMAGE_AVAILABLE or not ZPL_CHINESE_FONT_PATH:
+        return None
+    
+    try:
+        # 載入字型（如果要求粗體，優先使用粗體字型）
+        if bold:
+            # 嘗試載入粗體字型
+            bold_font_paths = [
+                "C:/Windows/Fonts/msjhbd.ttc",  # 微軟正黑體粗體
+                "C:/Windows/Fonts/msyhbd.ttc",  # 微軟雅黑粗體（備用）
+            ]
+            font = None
+            for font_path in bold_font_paths:
+                if os.path.exists(font_path):
+                    try:
+                        font = ImageFont.truetype(font_path, ZPL_CHINESE_FONT_SIZE)
+                        break
+                    except:
+                        continue
+            # 如果粗體字型載入失敗，使用一般字型
+            if font is None:
+                font = ImageFont.truetype(ZPL_CHINESE_FONT_PATH, ZPL_CHINESE_FONT_SIZE)
+        else:
+            font = ImageFont.truetype(ZPL_CHINESE_FONT_PATH, ZPL_CHINESE_FONT_SIZE)
+        
+        # 計算文字尺寸
+        # 使用較大的臨時圖片來測量文字大小（包含上升和下降部分）
+        temp_img = Image.new('RGB', (1000, 200), (255, 255, 255))
+        temp_draw = ImageDraw.Draw(temp_img)
+        bbox = temp_draw.textbbox((0, 0), text, font=font)
+        
+        # 邊界框：left, top, right, bottom
+        # top 可能是負數（上升部分，如大寫字母），bottom 是正數
+        text_left = bbox[0]
+        text_top = bbox[1]  # 可能是負數
+        text_right = bbox[2]
+        text_bottom = bbox[3]
+        
+        text_width = text_right - text_left
+        text_height = text_bottom - text_top
+        
+        # 增加邊距（避免邊緣裁切）
+        padding = 6
+        img_width = text_width + padding * 2
+        # 圖形高度需要包含完整的文字高度（包括上升和下降部分）
+        img_height = text_height + padding * 2
+        
+        # 建立 1-bit 黑白圖片
+        img = Image.new('1', (img_width, img_height), 1)  # 1 = 白色
+        draw = ImageDraw.Draw(img)
+        
+        # 計算文字繪製的 Y 座標
+        # 因為 text_top 可能是負數，需要調整 Y 座標
+        text_y = padding - text_top  # 這樣可以確保文字完整顯示
+        
+        # 繪製文字（0 = 黑色）
+        draw.text((padding, text_y), text, font=font, fill=0)
+        
+        # 轉換為 ZPL HEX 格式
+        hex_data = _image_to_zpl_hex(img)
+        
+        if not hex_data:
+            return None
+        
+        # 計算總位元組數和每行列數
+        bytes_per_row = (img_width + 7) // 8  # 每行需要幾個位元組（8位=1位元組）
+        total_bytes = bytes_per_row * img_height
+        
+        # 生成 ~DGR 指令
+        # 格式：~DGR:名稱,總位元組數,每行列數,壓縮的HEX資料
+        zpl_command = f"~DGR:{item_name},{total_bytes:05d},{bytes_per_row:03d},{hex_data}"
+        
+        return zpl_command
+        
+    except Exception as e:
+        print(f"將文字轉換為 ZPL 圖形失敗: {text}, 錯誤: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def _image_to_zpl_hex(img):
+    """將 PIL 圖片轉換為 ZPL HEX 格式
+    
+    ZPL ~DGR 指令使用的格式：
+    - 每個位元組代表 8 個像素（水平方向，從左到右）
+    - 位元 7（最高位）對應最左側的像素
+    - 1 = 黑色，0 = 白色
+    
+    PIL '1' 模式：
+    - 0 = 黑色，1 = 白色
+    - 需要反轉
+    """
+    try:
+        width, height = img.size
+        bytes_per_row = (width + 7) // 8
+        
+        # 取得圖片的像素數據
+        pixels = img.load()
+        
+        # 轉換為位元組陣列
+        hex_chars = []
+        for y in range(height):
+            for x_byte in range(bytes_per_row):
+                byte_value = 0
+                for bit in range(8):
+                    pixel_x = x_byte * 8 + bit
+                    if pixel_x < width:
+                        # PIL 的 '1' 模式：0=黑色, 1=白色
+                        # ZPL 需要：0=白色, 1=黑色
+                        # 所以需要反轉：如果 PIL 是黑色(0)，ZPL 設為 1
+                        pixel_value = pixels[pixel_x, y]
+                        if pixel_value == 0:  # PIL 黑色像素
+                            # ZPL 設為 1（黑色）
+                            # 位元順序：最高位（bit 7）對應最左側像素
+                            byte_value |= (1 << (7 - bit))
+                        # 如果 pixel_value == 1（PIL 白色），ZPL 設為 0（白色），不需要操作
+                
+                # 轉換為 HEX（兩位數，大寫）
+                hex_chars.append(f"{byte_value:02X}")
+        
+        # 合併所有 HEX 字元
+        hex_string = ''.join(hex_chars)
+        
+        return hex_string
+        
+    except Exception as e:
+        print(f"圖片轉換為 ZPL HEX 失敗: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def _generate_fixed_graphics():
+    """生成固定文字的預定義圖形（使用微軟正黑體）"""
+    global ZPL_FIXED_GRAPHICS
+    if not IMAGE_AVAILABLE or not ZPL_CHINESE_FONT_PATH:
+        print("警告：無法生成固定圖形：缺少 PIL 或微軟正黑體字型")
+        return
+    
+    try:
+        # 固定文字的列表
+        fixed_texts = {
+            "IN": "【入庫】",
+            "OUT": "【出庫】",
+            "REAGENT_NAME": "試劑名稱:",
+            "BATCH": "試劑批號:",
+            "EXPIRY": "穩定效期:",
+            "ENTRY_DATE": "入庫日期:",
+            "PERSON": "人員:",
+            "CHECKOUT_DATE": "出庫日期:",
+            "NEW_BATCH": ">>新批號<<",
+            "QUALIFIED": "(允收合格)"
+        }
+        
+        for key, text in fixed_texts.items():
+            # 新批號標記使用粗體
+            is_bold = (key == "NEW_BATCH")
+            zpl_graphic = _text_to_zpl_graphic(text, f"ITEM_{key}", bold=is_bold)
+            if zpl_graphic:
+                ZPL_FIXED_GRAPHICS[key] = zpl_graphic
+        
+        print(f"成功生成 {len(ZPL_FIXED_GRAPHICS)} 個固定圖形")
+        
+    except Exception as e:
+        print(f"生成固定圖形失敗: {e}")
+        import traceback
+        traceback.print_exc()
+
+# 初始化 ZPL 圖形模式
+if IMAGE_AVAILABLE:
+    _load_chinese_font_for_zpl()
+    _generate_fixed_graphics()
+
 # 在打包版本中，資料庫放在database資料夾中
 if getattr(sys, 'frozen', False):
     # 打包版本：使用database資料夾
@@ -659,7 +925,7 @@ def get_chinese_font():
 
 def generate_zpl_labels(entry, quantity=None, is_new_batch=False):
     """
-    生成ZPL格式的標籤指令 (支援中文字型)
+    生成ZPL格式的標籤指令 (使用圖形模式，確保中文正確顯示)
     - entry: 資料庫記錄
     - quantity: 列印數量
     - is_new_batch: 是否為新批號
@@ -669,55 +935,241 @@ def generate_zpl_labels(entry, quantity=None, is_new_batch=False):
     
     zpl_commands = []
     
+    # 標籤尺寸：5cm x 3.5cm (203 DPI)
+    # 50mm = 394 dots, 35mm = 276 dots
+    label_width_dots = 394  # 50mm at 203 DPI (正確計算：50 * 203 / 25.4 ≈ 394)
+    label_height_dots = 276  # 35mm at 203 DPI (正確計算：35 * 203 / 25.4 ≈ 276)
+    
+    # 準備動態文字的圖形
+    dynamic_graphics = {}  # 儲存圖形定義的 ZPL 指令
+    dynamic_graphic_names = {}  # 儲存圖形項目名稱
+    
+    # 生成動態文字的圖形
+    reagent_name = entry.reagent_name
+    batch_number = entry.reagent_batch_number
+    expiry_str = entry.expiry_date.strftime('%Y/%m/%d')
+    entry_str = entry.entry_date.strftime('%Y/%m/%d')
+    
+    # 如果固定圖形「試劑名稱:」失敗，為標籤也生成動態圖形
+    if reagent_name and "REAGENT_NAME" not in ZPL_FIXED_GRAPHICS:
+        label_item_name = "ITEM_REAGENT_NAME_LABEL_DYN"
+        label_graphic = _text_to_zpl_graphic("試劑名稱:", label_item_name)
+        if label_graphic:
+            dynamic_graphics['reagent_name_label'] = label_graphic
+            dynamic_graphic_names['reagent_name_label'] = label_item_name
+    
+    # 生成試劑名稱圖形
+    if reagent_name:
+        item_name = f"ITEM_REAGENT_NAME_DYN_{hash(reagent_name) % 10000}"
+        name_graphic = _text_to_zpl_graphic(reagent_name, item_name)
+        if name_graphic:
+            dynamic_graphics['reagent_name'] = name_graphic
+            dynamic_graphic_names['reagent_name'] = item_name
+    
+    # 生成批號圖形
+    if batch_number:
+        item_name = f"ITEM_BATCH_DYN_{hash(batch_number) % 10000}"
+        batch_graphic = _text_to_zpl_graphic(batch_number, item_name)
+        if batch_graphic:
+            dynamic_graphics['batch_number'] = batch_graphic
+            dynamic_graphic_names['batch_number'] = item_name
+    
+    # 生成日期圖形
+    if expiry_str:
+        item_name = f"ITEM_EXPIRY_DYN_{hash(expiry_str) % 10000}"
+        expiry_graphic = _text_to_zpl_graphic(expiry_str, item_name)
+        if expiry_graphic:
+            dynamic_graphics['expiry'] = expiry_graphic
+            dynamic_graphic_names['expiry'] = item_name
+    
+    if entry_str:
+        item_name = f"ITEM_ENTRY_DYN_{hash(entry_str) % 10000}"
+        entry_graphic = _text_to_zpl_graphic(entry_str, item_name)
+        if entry_graphic:
+            dynamic_graphics['entry_date'] = entry_graphic
+            dynamic_graphic_names['entry_date'] = item_name
+    
     for i in range(quantity):
         zpl = "^XA\n"  # 開始標籤
         
-        # 設定標籤尺寸
-        zpl += "^PW399\n"  # 設定列印寬度
-        zpl += "^LL279\n"  # 設定標籤長度
-        
-        # 設定中文字型支援 (UTF-8編碼)
-        zpl += "^CI28\n"
+        # 設定標籤尺寸 (以點為單位，203 DPI)
+        zpl += f"^PW{label_width_dots}\n"  # 設定列印寬度
+        zpl += f"^LL{label_height_dots}\n"  # 設定標籤長度
         
         # 只有第一張標籤是新批號格式（當is_new_batch為True時）
         is_first_label = is_new_batch and i == 0
         
         # 繪製邊框
+        border_thickness = 2
         if is_first_label:
             # 新批號：雙邊框
-            zpl += "^FO10,10^GB379,259,6^FS\n"  # 外框 (粗線)
-            zpl += "^FO15,15^GB369,249,2^FS\n"  # 內框 (細線)
+            # 外層邊框 (粗線)
+            outer_x, outer_y = 5, 5
+            outer_w = label_width_dots - 10
+            outer_h = label_height_dots - 10
+            zpl += f"^FO{outer_x},{outer_y}^GB{outer_w},{outer_h},{border_thickness * 3}^FS\n"
+            # 內層邊框 (細線)
+            inner_x, inner_y = 10, 10
+            inner_w = label_width_dots - 20
+            inner_h = label_height_dots - 20
+            zpl += f"^FO{inner_x},{inner_y}^GB{inner_w},{inner_h},{border_thickness}^FS\n"
         else:
             # 一般標籤：單邊框
-            zpl += "^FO15,15^GB369,249,2^FS\n"
+            border_x, border_y = 5, 5
+            border_w = label_width_dots - 10
+            border_h = label_height_dots - 10
+            zpl += f"^FO{border_x},{border_y}^GB{border_w},{border_h},{border_thickness}^FS\n"
         
-        # 標題【入庫】
-        zpl += "^FO20,25^AJN,25,30^FD【入庫】^FS\n"
+        # ========== 使用圖形模式顯示文字 ==========
+        # 先定義固定圖形（如果可用）
+        for key, graphic_def in ZPL_FIXED_GRAPHICS.items():
+            zpl += graphic_def + "\n"
+        
+        # 定義動態圖形（每個標籤都需要定義一次）
+        for key, graphic_def in dynamic_graphics.items():
+            zpl += graphic_def + "\n"
+        
+        y_pos = 25  # 起始Y位置
+        
+        # 【入庫】標題
+        if "IN" in ZPL_FIXED_GRAPHICS:
+            zpl += f"^FO20,{y_pos}^XGITEM_IN^FS\n"
+        else:
+            # 備用方案：使用字型
+            zpl += f"^FO20,{y_pos}^A0N,22,22^FD【入庫】^FS\n"
+        y_pos += 30
         
         # 試劑名稱
-        zpl += f"^FO20,55^AJN,20,20^FD試劑名稱:{entry.reagent_name}^FS\n"
-        
-        # 試劑批號（根據是否第一張決定顯示方式）
-        if is_first_label:
-            batch_text = f"試劑批號:{entry.reagent_batch_number} >>新批號<<"
+        if "REAGENT_NAME" in ZPL_FIXED_GRAPHICS:
+            zpl += f"^FO20,{y_pos}^XGITEM_REAGENT_NAME^FS\n"
+            label_width = 80  # 估算「試劑名稱:」的寬度
+            char_spacing = 22  # 一個中文字距離
+            if 'reagent_name' in dynamic_graphic_names:
+                zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^XG{dynamic_graphic_names['reagent_name']}^FS\n"
+            else:
+                # 備用方案：使用字型
+                zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^A0N,22,22^FD{reagent_name}^FS\n"
         else:
-            batch_text = f"試劑批號:{entry.reagent_batch_number} (允收合格)"
-        zpl += f"^FO20,85^AJN,20,20^FD{batch_text}^FS\n"
+            # 如果沒有固定圖形，使用動態圖形或字型
+            # 先組合完整文字（比照試劑批號的方式）
+            reagent_text = f"試劑名稱:{reagent_name}"
+            if 'reagent_name' in dynamic_graphic_names:
+                # 如果動態圖形成功，使用動態圖形顯示「試劑名稱:」標籤（如果有的話），再顯示試劑名稱圖形
+                if 'reagent_name_label' in dynamic_graphic_names:
+                    # 使用動態圖形顯示「試劑名稱:」標籤
+                    zpl += f"^FO20,{y_pos}^XG{dynamic_graphic_names['reagent_name_label']}^FS\n"
+                    label_width = 80  # 估算「試劑名稱:」的寬度
+                    char_spacing = 22  # 一個中文字距離
+                    zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^XG{dynamic_graphic_names['reagent_name']}^FS\n"
+                else:
+                    # 如果標籤動態圖形也失敗，使用字型顯示標籤（可能無法顯示中文）
+                    zpl += f"^FO20,{y_pos}^A0N,22,22^FD試劑名稱:^FS\n"
+                    label_width = 80  # 估算「試劑名稱:」的寬度
+                    char_spacing = 22  # 一個中文字距離
+                    zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^XG{dynamic_graphic_names['reagent_name']}^FS\n"
+            else:
+                # 如果動態圖形也失敗，顯示完整文字
+                zpl += f"^FO20,{y_pos}^A0N,22,22^FD{reagent_text}^FS\n"
+        y_pos += 30
+        
+        # 試劑批號
+        if "BATCH" in ZPL_FIXED_GRAPHICS:
+            zpl += f"^FO20,{y_pos}^XGITEM_BATCH^FS\n"
+            label_width = 80  # 估算「試劑批號:」的寬度
+            char_spacing = 22  # 一個中文字距離
+            if 'batch_number' in dynamic_graphic_names:
+                zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^XG{dynamic_graphic_names['batch_number']}^FS\n"
+            else:
+                zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^A0N,22,22^FD{batch_number}^FS\n"
+            
+            # 新批號標記或允收合格標記
+            if is_first_label:
+                if "NEW_BATCH" in ZPL_FIXED_GRAPHICS:
+                    # 計算批號圖形的寬度（約100點），然後顯示新批號標記
+                    zpl += f"^FO{20 + label_width + char_spacing + 100},{y_pos}^XGITEM_NEW_BATCH^FS\n"
+                else:
+                    # 使用粗體字型顯示新批號標記
+                    zpl += f"^FO{20 + label_width + char_spacing + 100},{y_pos}^A0B,22,22^FD>>新批號<<^FS\n"
+            else:
+                if "QUALIFIED" in ZPL_FIXED_GRAPHICS:
+                    zpl += f"^FO{20 + label_width + char_spacing + 100},{y_pos}^XGITEM_QUALIFIED^FS\n"
+                else:
+                    zpl += f"^FO{20 + label_width + char_spacing + 100},{y_pos}^A0N,22,22^FD(允收合格)^FS\n"
+        else:
+            # 如果沒有固定圖形，使用動態圖形或字型
+            if is_first_label:
+                batch_text = f"試劑批號:{batch_number} >>新批號<<"
+                # 使用粗體字型顯示新批號標記
+                if 'batch_number' in dynamic_graphic_names:
+                    zpl += f"^FO20,{y_pos}^A0N,22,22^FD試劑批號:^FS\n"
+                    char_spacing = 22  # 一個中文字距離
+                    zpl += f"^FO{20 + 80 + char_spacing},{y_pos}^XG{dynamic_graphic_names['batch_number']}^FS\n"
+                    zpl += f"^FO{20 + 80 + char_spacing + 100},{y_pos}^A0B,22,22^FD>>新批號<<^FS\n"
+                else:
+                    zpl += f"^FO20,{y_pos}^A0N,22,22^FD試劑批號:{batch_number} ^FS\n"
+                    # 計算批號文字的寬度後顯示粗體新批號標記
+                    zpl += f"^FO{20 + 80 + 22 + len(batch_number) * 11},{y_pos}^A0B,22,22^FD>>新批號<<^FS\n"
+            else:
+                batch_text = f"試劑批號:{batch_number} (允收合格)"
+                if 'batch_number' in dynamic_graphic_names:
+                    zpl += f"^FO20,{y_pos}^XG{dynamic_graphic_names['batch_number']}^FS\n"
+                else:
+                    zpl += f"^FO20,{y_pos}^A0N,22,22^FD{batch_text}^FS\n"
+        y_pos += 30
         
         # 穩定效期
-        expiry_str = entry.expiry_date.strftime('%Y/%m/%d')
-        zpl += f"^FO20,115^AJN,20,20^FD穩定效期:{expiry_str}^FS\n"
+        if "EXPIRY" in ZPL_FIXED_GRAPHICS:
+            zpl += f"^FO20,{y_pos}^XGITEM_EXPIRY^FS\n"
+            label_width = 80
+            char_spacing = 22  # 一個中文字距離
+            if 'expiry' in dynamic_graphic_names:
+                zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^XG{dynamic_graphic_names['expiry']}^FS\n"
+            else:
+                zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^A0N,22,22^FD{expiry_str}^FS\n"
+        else:
+            if 'expiry' in dynamic_graphic_names:
+                zpl += f"^FO20,{y_pos}^A0N,22,22^FD穩定效期:^FS\n"
+                char_spacing = 22  # 一個中文字距離
+                zpl += f"^FO{20 + 80 + char_spacing},{y_pos}^XG{dynamic_graphic_names['expiry']}^FS\n"
+            else:
+                zpl += f"^FO20,{y_pos}^A0N,22,22^FD穩定效期:{expiry_str}^FS\n"
+        y_pos += 30
         
-        # 入庫時間
-        entry_str = entry.entry_date.strftime('%Y/%m/%d')
-        zpl += f"^FO20,145^AJN,20,20^FD入庫日期:{entry_str}^FS\n"
+        # 入庫日期
+        if "ENTRY_DATE" in ZPL_FIXED_GRAPHICS:
+            zpl += f"^FO20,{y_pos}^XGITEM_ENTRY_DATE^FS\n"
+            label_width = 80
+            char_spacing = 22  # 一個中文字距離
+            if 'entry_date' in dynamic_graphic_names:
+                zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^XG{dynamic_graphic_names['entry_date']}^FS\n"
+            else:
+                zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^A0N,22,22^FD{entry_str}^FS\n"
+        else:
+            if 'entry_date' in dynamic_graphic_names:
+                zpl += f"^FO20,{y_pos}^A0N,22,22^FD入庫日期:^FS\n"
+                char_spacing = 22  # 一個中文字距離
+                zpl += f"^FO{20 + 80 + char_spacing},{y_pos}^XG{dynamic_graphic_names['entry_date']}^FS\n"
+            else:
+                zpl += f"^FO20,{y_pos}^A0N,22,22^FD入庫日期:{entry_str}^FS\n"
+        y_pos += 30
         
-        # 出庫標題【出庫】
-        zpl += "^FO20,185^AJN,25,30^FD【出庫】^FS\n"
+        # 【出庫】標題
+        if "OUT" in ZPL_FIXED_GRAPHICS:
+            zpl += f"^FO20,{y_pos}^XGITEM_OUT^FS\n"
+        else:
+            zpl += f"^FO20,{y_pos}^A0N,22,22^FD【出庫】^FS\n"
+        y_pos += 30
         
         # 出庫資訊
-        zpl += "^FO20,215^AJN,20,20^FD人員^FS\n"
-        zpl += "^FO200,215^AJN,20,20^FD出庫日期^FS\n"
+        if "PERSON" in ZPL_FIXED_GRAPHICS:
+            zpl += f"^FO20,{y_pos}^XGITEM_PERSON^FS\n"
+        else:
+            zpl += f"^FO20,{y_pos}^A0N,22,22^FD人員^FS\n"
+        
+        if "CHECKOUT_DATE" in ZPL_FIXED_GRAPHICS:
+            zpl += f"^FO190,{y_pos}^XGITEM_CHECKOUT_DATE^FS\n"
+        else:
+            zpl += f"^FO190,{y_pos}^A0N,22,22^FD出庫日期^FS\n"
         
         zpl += "^XZ\n"  # 結束標籤
         
@@ -727,7 +1179,7 @@ def generate_zpl_labels(entry, quantity=None, is_new_batch=False):
 
 def send_zpl_to_printer(zpl_commands):
     """
-    發送ZPL指令到印表機 (支援中文字型)
+    發送ZPL指令到Zebra印表機 (支援UTF-8和Unicode中文字型)
     """
     try:
         if not WINDOWS_PRINT_AVAILABLE:
@@ -736,28 +1188,30 @@ def send_zpl_to_printer(zpl_commands):
         
         # 獲取預設印表機
         default_printer = win32print.GetDefaultPrinter()
-        print(f"發送ZPL指令到: {default_printer}")
+        print(f"發送ZPL指令到 Zebra 印表機: {default_printer}")
         
         # 開啟印表機
         printer_handle = win32print.OpenPrinter(default_printer)
         
         try:
-            # 開始列印工作
-            job_id = win32print.StartDocPrinter(printer_handle, 1, ("ZPL Label", None, "RAW"))
+            # 開始列印工作 (使用 RAW 模式直接發送ZPL指令)
+            job_id = win32print.StartDocPrinter(printer_handle, 1, ("ZPL Label UTF-8", None, "RAW"))
             win32print.StartPagePrinter(printer_handle)
             
             # 發送每個ZPL指令 (確保UTF-8編碼)
             for i, zpl in enumerate(zpl_commands):
                 # 確保ZPL指令使用UTF-8編碼
+                # 這樣印表機可以正確解析 ^CI28 指令並使用 Unicode 尋找字形
                 zpl_bytes = zpl.encode('utf-8')
                 win32print.WritePrinter(printer_handle, zpl_bytes)
-                print(f"已發送第 {i+1} 張標籤的ZPL指令")
+                print(f"已發送第 {i+1} 張標籤的ZPL指令 (UTF-8編碼)")
             
             # 結束列印
             win32print.EndPagePrinter(printer_handle)
             win32print.EndDocPrinter(printer_handle)
             
             print(f"ZPL指令發送成功，共 {len(zpl_commands)} 張標籤")
+            print("注意：請確保 Zebra 印表機已正確設定並支援 UTF-8/Unicode 編碼")
             return True
             
         finally:
@@ -765,6 +1219,8 @@ def send_zpl_to_printer(zpl_commands):
     
     except Exception as e:
         print(f"發送ZPL指令失敗: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def generate_and_print_labels(entry, quantity=None, is_new_batch=False, printer_type="pdf"):
@@ -835,17 +1291,24 @@ def print_pdf_direct(entry, quantity=None, is_new_batch=False):
         quantity = entry.quantity
     
     # 標籤尺寸：5cm x 3.5cm
-    label_width = 50 * mm  # 5cm
-    label_height = 35 * mm  # 3.5cm
+    # 為了避免列印時旋轉90度，將頁面設為直向（高度 > 寬度）
+    label_width = 50 * mm  # 5cm（實際標籤寬度）
+    label_height = 35 * mm  # 3.5cm（實際標籤高度）
     
     # 建立標籤PDF
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
-    c = canvas.Canvas(temp_file.name, pagesize=(label_width, label_height))
+    # 創建PDF文檔（交換寬高，設為直向以避免列印時旋轉）
+    c = canvas.Canvas(temp_file.name, pagesize=(label_height, label_width))
     
     # 獲取中文字體
     font_name = get_chinese_font()
     
     for i in range(quantity):
+        # 旋轉畫布90度，讓內容正確顯示在直向頁面上
+        # 先平移再旋轉，確保內容顯示在正確位置
+        c.translate(label_height, 0)
+        c.rotate(90)
+        
         if is_new_batch:
             # 新批號標籤：雙重邊框
             # 外層邊框（粗邊框）
@@ -886,6 +1349,9 @@ def print_pdf_direct(entry, quantity=None, is_new_batch=False):
         c.drawString(2*mm, 4*mm, "人員：")
         c.drawString(25*mm, 4*mm, "出庫日期：")
         
+        # 重置變換矩陣，為下一頁做準備
+        c.resetTransforms()
+        
         if i < quantity - 1:
             c.showPage()
     
@@ -897,7 +1363,28 @@ def print_pdf_direct(entry, quantity=None, is_new_batch=False):
             default_printer = win32print.GetDefaultPrinter()
             print(f"直接列印到: {default_printer}")
             
-            # 使用系統命令列印PDF
+            # 優先使用應用程式目錄內的 SumatraPDF（支援靜默列印）
+            sumatra_path = find_sumatra_pdf()
+            
+            if sumatra_path:
+                print(f"使用SumatraPDF靜默列印: {sumatra_path}")
+                try:
+                    # SumatraPDF 不支援直接設定列印方向，但我們可以確保 PDF 本身的方向正確
+                    # 使用基本參數列印，PDF 的方向應該由 PDF 本身的頁面大小決定
+                    subprocess.run([
+                        sumatra_path, 
+                        "-print-to-default", 
+                        "-silent",
+                        temp_file.name
+                    ], check=True, timeout=30)
+                    print("SumatraPDF 靜默列印命令已發送")
+                    print("注意：如果列印方向不正確，請檢查印表機驅動的預設設定")
+                    return quantity
+                except Exception as e:
+                    print(f"SumatraPDF 列印失敗: {e}")
+            
+            # 如果 SumatraPDF 不可用，使用系統命令列印PDF
+            print("使用系統預設方式列印（可能不是靜默列印）")
             win32api.ShellExecute(0, "print", temp_file.name, None, ".", 0)
             
             return quantity
@@ -924,14 +1411,15 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
         quantity = entry.quantity
     
     # 標籤尺寸：5cm x 3.5cm
-    label_width = 50 * mm  # 5cm
-    label_height = 35 * mm  # 3.5cm
+    # 為了避免列印時旋轉90度，將頁面設為直向（高度 > 寬度）
+    label_width = 50 * mm  # 5cm（實際標籤寬度）
+    label_height = 35 * mm  # 3.5cm（實際標籤高度）
     
     # 建立標籤PDF
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
     
-    # 創建PDF文檔
-    doc = canvas.Canvas(temp_file.name, pagesize=(label_width, label_height))
+    # 創建PDF文檔（交換寬高，設為直向以避免列印時旋轉）
+    doc = canvas.Canvas(temp_file.name, pagesize=(label_height, label_width))
     
     # 獲取中文字體
     font_name = get_chinese_font()
@@ -942,6 +1430,11 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
         
         # 只有第一張標籤是新批號格式（當is_new_batch為True時）
         is_first_label = is_new_batch and i == 0
+        
+        # 旋轉畫布90度，讓內容正確顯示在直向頁面上
+        # 先平移再旋轉，確保內容顯示在正確位置
+        doc.translate(label_height, 0)
+        doc.rotate(90)
         
         # 繪製邊框
         if is_first_label:
@@ -985,6 +1478,9 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
         doc.drawString(2*mm, 4*mm, "人員：")
         doc.drawString(25*mm, 4*mm, "出庫日期：")
         
+        # 重置變換矩陣，為下一頁做準備
+        doc.resetTransforms()
+        
         # 如果不是最後一頁，則新增頁面
         if i < quantity - 1:
             doc.showPage()
@@ -1003,22 +1499,47 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
             default_printer = win32print.GetDefaultPrinter()
             print(f"使用預設印表機: {default_printer}")
             
-            # 使用Adobe Reader或系統PDF查看器的靜默列印命令
-            # 使用完整路徑調用SumatraPDF或Adobe Reader
+            # 優先使用應用程式目錄內的 SumatraPDF（支援靜默列印）
+            sumatra_path = find_sumatra_pdf()
+            
+            if sumatra_path:
+                print(f"使用SumatraPDF靜默列印: {sumatra_path}")
+                try:
+                    # SumatraPDF 不支援直接設定列印方向
+                    # PDF 的方向由 PDF 本身的頁面大小決定（寬度 > 高度 = 橫向）
+                    # 如果列印方向不正確，可能是印表機驅動的自動旋轉功能造成的
+                    subprocess.run([
+                        sumatra_path, 
+                        "-print-to-default", 
+                        "-silent",
+                        temp_file.name
+                    ], check=True, timeout=30)
+                    print("SumatraPDF 靜默列印命令已發送")
+                    print("注意：如果列印方向不正確，請在印表機驅動設定中關閉自動旋轉功能")
+                    return quantity
+                except subprocess.TimeoutExpired:
+                    print("警告：SumatraPDF 列印超時")
+                except subprocess.CalledProcessError as e:
+                    print(f"警告：SumatraPDF 列印失敗: {e}")
+                except Exception as e:
+                    print(f"警告：SumatraPDF 列印發生錯誤: {e}")
+            
+            # 如果 SumatraPDF 不可用，嘗試使用 Adobe Reader
             adobe_path = r"C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
-            sumatra_path = r"C:\Program Files\SumatraPDF\SumatraPDF.exe"
-            
-            if os.path.exists(sumatra_path):
-                print("使用SumatraPDF列印...")
-                subprocess.run([sumatra_path, "-print-to-default", "-silent", temp_file.name], check=True)
-            elif os.path.exists(adobe_path):
+            if os.path.exists(adobe_path):
                 print("使用Adobe Reader列印...")
-                subprocess.run([adobe_path, "/T", temp_file.name, default_printer], check=True)
-            else:
-                print("找不到PDF閱讀器，使用系統預設程式...")
-                # 如果都找不到，使用系統預設的方式
-                win32api.ShellExecute(0, "print", temp_file.name, None, ".", 0)
+                try:
+                    subprocess.run([adobe_path, "/T", temp_file.name, default_printer], 
+                                  check=True, timeout=30)
+                    print("Adobe Reader 列印命令已發送")
+                    return quantity
+                except Exception as e:
+                    print(f"警告：Adobe Reader 列印失敗: {e}")
             
+            # 如果都不可用，使用系統預設方式（可能不是靜默列印）
+            print("找不到支援靜默列印的PDF閱讀器，使用系統預設程式...")
+            print("注意：此方式可能會顯示列印對話框")
+            win32api.ShellExecute(0, "print", temp_file.name, None, ".", 0)
             print("列印命令已發送")
         else:
             print("Windows列印功能不可用，改為開啟PDF檔案")
@@ -1034,40 +1555,6 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
             pass
     
     return quantity
-    
-    c.save()
-    
-    # 嘗試使用Windows預設印表機直接列印
-    try:
-        print(f"已生成 {quantity} 張標籤PDF: {temp_file.name}")
-        
-        if WINDOWS_PRINT_AVAILABLE:
-            print("正在嘗試直接列印...")
-            
-            # 獲取預設印表機名稱
-            default_printer = win32print.GetDefaultPrinter()
-            print(f"使用預設印表機: {default_printer}")
-            
-            # 使用系統預設應用程式開啟PDF（通常是Adobe Reader或其他PDF閱讀器）
-            # 這樣用戶可以選擇列印或儲存
-            subprocess.Popen(['start', temp_file.name], shell=True)
-            
-            print(f"PDF已開啟，請在PDF閱讀器中選擇列印或儲存")
-        else:
-            print("Windows列印功能不可用，改為開啟PDF檔案")
-            subprocess.Popen(['start', temp_file.name], shell=True)
-            print(f"PDF已開啟，請手動選擇列印或儲存")
-            return quantity
-        
-    except Exception as e:
-        print(f"列印失敗: {e}")
-        print("改為自動開啟PDF檔案")
-        try:
-            # 如果列印失敗，至少開啟PDF讓用戶手動處理
-            subprocess.Popen(['start', temp_file.name], shell=True)
-        except:
-            pass
-        return quantity
 
 @app.route('/api/test')
 def test():
@@ -1122,8 +1609,8 @@ def print_direct(entry_id):
         
         print(f"直接列印請求: 記錄ID {entry_id}, 數量 {quantity}, 新批號: {is_new_batch}, 標籤機類型: {printer_type}")
         
-        # 直接列印（使用正確的PDF生成函數）
-        labels_printed = generate_pdf_labels(entry, quantity, is_new_batch)
+        # 根據列印模式選擇對應的列印函數
+        labels_printed = generate_and_print_labels(entry, quantity, is_new_batch, printer_type)
         
         return jsonify({
             'success': True,
