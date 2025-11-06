@@ -950,14 +950,6 @@ def generate_zpl_labels(entry, quantity=None, is_new_batch=False):
     expiry_str = entry.expiry_date.strftime('%Y/%m/%d')
     entry_str = entry.entry_date.strftime('%Y/%m/%d')
     
-    # 如果固定圖形「試劑名稱:」失敗，為標籤也生成動態圖形
-    if reagent_name and "REAGENT_NAME" not in ZPL_FIXED_GRAPHICS:
-        label_item_name = "ITEM_REAGENT_NAME_LABEL_DYN"
-        label_graphic = _text_to_zpl_graphic("試劑名稱:", label_item_name)
-        if label_graphic:
-            dynamic_graphics['reagent_name_label'] = label_graphic
-            dynamic_graphic_names['reagent_name_label'] = label_item_name
-    
     # 生成試劑名稱圖形
     if reagent_name:
         item_name = f"ITEM_REAGENT_NAME_DYN_{hash(reagent_name) % 10000}"
@@ -1050,23 +1042,14 @@ def generate_zpl_labels(entry, quantity=None, is_new_batch=False):
                 # 備用方案：使用字型
                 zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^A0N,22,22^FD{reagent_name}^FS\n"
         else:
-            # 如果沒有固定圖形，使用動態圖形或字型
-            # 先組合完整文字（比照試劑批號的方式）
+            # 如果沒有固定圖形，使用動態圖形或字型（比照試劑批號的方式）
             reagent_text = f"試劑名稱:{reagent_name}"
             if 'reagent_name' in dynamic_graphic_names:
-                # 如果動態圖形成功，使用動態圖形顯示「試劑名稱:」標籤（如果有的話），再顯示試劑名稱圖形
-                if 'reagent_name_label' in dynamic_graphic_names:
-                    # 使用動態圖形顯示「試劑名稱:」標籤
-                    zpl += f"^FO20,{y_pos}^XG{dynamic_graphic_names['reagent_name_label']}^FS\n"
-                    label_width = 80  # 估算「試劑名稱:」的寬度
-                    char_spacing = 22  # 一個中文字距離
-                    zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^XG{dynamic_graphic_names['reagent_name']}^FS\n"
-                else:
-                    # 如果標籤動態圖形也失敗，使用字型顯示標籤（可能無法顯示中文）
-                    zpl += f"^FO20,{y_pos}^A0N,22,22^FD試劑名稱:^FS\n"
-                    label_width = 80  # 估算「試劑名稱:」的寬度
-                    char_spacing = 22  # 一個中文字距離
-                    zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^XG{dynamic_graphic_names['reagent_name']}^FS\n"
+                # 使用字型顯示「試劑名稱:」標籤，然後顯示動態圖形
+                zpl += f"^FO20,{y_pos}^A0N,22,22^FD試劑名稱:^FS\n"
+                label_width = 80  # 估算「試劑名稱:」的寬度
+                char_spacing = 22  # 一個中文字距離
+                zpl += f"^FO{20 + label_width + char_spacing},{y_pos}^XG{dynamic_graphic_names['reagent_name']}^FS\n"
             else:
                 # 如果動態圖形也失敗，顯示完整文字
                 zpl += f"^FO20,{y_pos}^A0N,22,22^FD{reagent_text}^FS\n"
@@ -1290,24 +1273,20 @@ def print_pdf_direct(entry, quantity=None, is_new_batch=False):
     if quantity is None:
         quantity = entry.quantity
     
-    # 標籤尺寸：5cm x 3.5cm
-    # 為了避免列印時旋轉90度，將頁面設為直向（高度 > 寬度）
-    label_width = 50 * mm  # 5cm（實際標籤寬度）
-    label_height = 35 * mm  # 3.5cm（實際標籤高度）
+    # 標籤尺寸：5cm x 3.5cm（橫向）
+    label_width = 50 * mm  # 5cm（寬度）
+    label_height = 35 * mm  # 3.5cm（高度）
     
     # 建立標籤PDF
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
-    # 創建PDF文檔（交換寬高，設為直向以避免列印時旋轉）
-    c = canvas.Canvas(temp_file.name, pagesize=(label_height, label_width))
+    # 創建PDF文檔（橫向頁面：寬度 > 高度）
+    c = canvas.Canvas(temp_file.name, pagesize=(label_width, label_height))
     
     # 獲取中文字體
     font_name = get_chinese_font()
     
     for i in range(quantity):
-        # 旋轉畫布90度，讓內容正確顯示在直向頁面上
-        # 先平移再旋轉，確保內容顯示在正確位置
-        c.translate(label_height, 0)
-        c.rotate(90)
+        # 直接繪製內容，不需要旋轉（PDF 本身就是橫向）
         
         if is_new_batch:
             # 新批號標籤：雙重邊框
@@ -1348,9 +1327,6 @@ def print_pdf_direct(entry, quantity=None, is_new_batch=False):
         c.setFont(font_name, 8)
         c.drawString(2*mm, 4*mm, "人員：")
         c.drawString(25*mm, 4*mm, "出庫日期：")
-        
-        # 重置變換矩陣，為下一頁做準備
-        c.resetTransforms()
         
         if i < quantity - 1:
             c.showPage()
@@ -1410,16 +1386,15 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
     if quantity is None:
         quantity = entry.quantity
     
-    # 標籤尺寸：5cm x 3.5cm
-    # 為了避免列印時旋轉90度，將頁面設為直向（高度 > 寬度）
-    label_width = 50 * mm  # 5cm（實際標籤寬度）
-    label_height = 35 * mm  # 3.5cm（實際標籤高度）
+    # 標籤尺寸：5cm x 3.5cm（橫向）
+    label_width = 50 * mm  # 5cm（寬度）
+    label_height = 35 * mm  # 3.5cm（高度）
     
     # 建立標籤PDF
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
     
-    # 創建PDF文檔（交換寬高，設為直向以避免列印時旋轉）
-    doc = canvas.Canvas(temp_file.name, pagesize=(label_height, label_width))
+    # 創建PDF文檔（橫向頁面：寬度 > 高度）
+    doc = canvas.Canvas(temp_file.name, pagesize=(label_width, label_height))
     
     # 獲取中文字體
     font_name = get_chinese_font()
@@ -1431,10 +1406,7 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
         # 只有第一張標籤是新批號格式（當is_new_batch為True時）
         is_first_label = is_new_batch and i == 0
         
-        # 旋轉畫布90度，讓內容正確顯示在直向頁面上
-        # 先平移再旋轉，確保內容顯示在正確位置
-        doc.translate(label_height, 0)
-        doc.rotate(90)
+        # 直接繪製內容，不需要旋轉（PDF 本身就是橫向）
         
         # 繪製邊框
         if is_first_label:
@@ -1477,9 +1449,6 @@ def generate_pdf_labels(entry, quantity=None, is_new_batch=False):
         doc.setFont(font_name, 8)
         doc.drawString(2*mm, 4*mm, "人員：")
         doc.drawString(25*mm, 4*mm, "出庫日期：")
-        
-        # 重置變換矩陣，為下一頁做準備
-        doc.resetTransforms()
         
         # 如果不是最後一頁，則新增頁面
         if i < quantity - 1:
