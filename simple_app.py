@@ -1206,18 +1206,20 @@ def send_zpl_to_printer(zpl_commands):
         traceback.print_exc()
         return False
 
-def generate_and_print_labels(entry, quantity=None, is_new_batch=False, printer_type="pdf"):
+def generate_and_print_labels(entry, quantity=None, is_new_batch=False, printer_type="zpl"):
     """
     統一的標籤生成和列印函數
     - entry: 資料庫記錄
     - quantity: 列印數量
     - is_new_batch: 是否為新批號
-    - printer_type: 印表機類型 ("pdf" 或 "zpl")
+    - printer_type: 印表機類型 ("pdf" 或 "zpl") - 已註銷PDF模式，一律使用ZPL
     """
     if quantity is None:
         quantity = entry.quantity
     
-    print(f"使用標籤機類型: {printer_type}")
+    # 強制使用ZPL模式（已註銷PDF模式）
+    printer_type = "zpl"
+    print(f"使用標籤機類型: {printer_type} (PDF模式已註銷)")
     
     # 根據印表機類型選擇對應的生成方式
     if printer_type == "zpl":
@@ -1262,9 +1264,9 @@ def generate_and_print_labels(entry, quantity=None, is_new_batch=False, printer_
             except Exception as e:
                 print(f"保存ZPL檔案失敗: {e}")
                 return 0
-    else:
-        # 使用PDF模式 (原有邏輯)
-        return generate_pdf_labels(entry, quantity, is_new_batch)
+    # else:
+    #     # 使用PDF模式 (原有邏輯) - 已註銷，不再執行
+    #     # return generate_pdf_labels(entry, quantity, is_new_batch)
 
 def print_pdf_direct(entry, quantity=None, is_new_batch=False):
     """
@@ -1562,7 +1564,7 @@ def print_direct(entry_id):
         data = request.json
         quantity = data.get('quantity', entry.quantity)
         is_new_batch = data.get('is_new_batch', False)
-        printer_type = data.get('printer_type', 'pdf')  # 預設為PDF模式
+        printer_type = data.get('printer_type', 'zpl')  # 預設為ZPL模式（PDF模式已註銷）
         
         # 如果前端沒有明確指定is_new_batch，則自動檢查
         if not is_new_batch:
